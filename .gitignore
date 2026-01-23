@@ -1,0 +1,37 @@
+# MacOS
+.DS_Store
+
+# Logs
+*.log
+device_flash_log*.txt
+verify_log*.txt
+
+# Build Artifacts
+_build/
+*.hex
+*.bin
+*.out
+*.map
+*.o
+*.d
+*.elf
+*.jlink
+
+# Configuration Keys (Private - Global)
+config/*
+!config/openocd.cfg
+!config/README.md
+*_keyfile
+*.keys
+*_devices.json
+
+# Editors
+.vscode/
+.idea/
+.kiro/
+
+# Firmware dumps
+firmware/
+
+# SDK (Excluded to reduce repo size. Users should use setup_sdk.sh)
+nrf-sdk/

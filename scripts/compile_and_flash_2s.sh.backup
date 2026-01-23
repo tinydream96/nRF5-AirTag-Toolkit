@@ -1,0 +1,72 @@
+#!/bin/bash
+
+# nRF52810 固件编译和刷写脚本 - 2秒广播间隔版本
+
+echo "=== nRF52810 固件编译和刷写 (2秒广播间隔) ==="
+
+# 检查是否在正确的目录
+if [ ! -f "heystack-nrf5x/nrf52810/armgcc/Makefile" ]; then
+    echo "❌ 错误: 请在包含 heystack-nrf5x 项目的目录中运行此脚本"
+    exit 1
+fi
+
+# 检查 SDK 是否存在
+if [ ! -d "nrf-sdk/nRF5_SDK_15.3.0_59ac345" ]; then
+    echo "❌ 错误: nRF5 SDK 未找到，请先下载并解压到 nrf-sdk/ 目录"
+    exit 1
+fi
+
+# 检查密钥文件是否存在
+if [ ! -f "heystack-nrf5x/nrf52810/armgcc/R0VVSW_keyfile" ]; then
+    echo "❌ 错误: 密钥文件 R0VVSW_keyfile 未找到"
+    exit 1
+fi
+
+# 切换到编译目录
+cd heystack-nrf5x/nrf52810/armgcc
+
+echo "📁 当前目录: $(pwd)"
+echo "🔧 开始编译固件..."
+
+# 编译参数说明
+echo "📋 编译参数:"
+echo "   - HAS_DCDC=0          : 使用 LDO 稳压器"
+echo "   - HAS_BATTERY=1       : 启用电量报告"
+echo "   - KEY_ROTATION_INTERVAL=300 : 密钥轮换间隔 5分钟"
+echo "   - MAX_KEYS=200        : 最大密钥数量 200"
+echo "   - ADVERTISING_INTERVAL=2000 : 蓝牙广播间隔 2秒"
+echo "   - ADV_KEYS_FILE=./R0VVSW_keyfile : 密钥文件"
+
+echo ""
+echo "🚀 执行编译和刷写命令..."
+
+# 执行编译和刷写
+make stflash-nrf52810_xxaa-patched \
+    HAS_DCDC=0 \
+    HAS_BATTERY=1 \
+    KEY_ROTATION_INTERVAL=300 \
+    MAX_KEYS=200 \
+    ADVERTISING_INTERVAL=2000 \
+    ADV_KEYS_FILE=./R0VVSW_keyfile
+
+# 检查编译结果
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "✅ 固件编译和刷写成功完成！"
+    echo "📡 蓝牙广播间隔已设置为 2 秒"
+    echo ""
+    echo "🔍 如需查看调试日志，请运行:"
+    echo "   make rtt-monitor"
+    echo ""
+    echo "🔄 如需重新编译带调试功能的版本，请运行:"
+    echo "   make stflash-nrf52810_xxaa-patched HAS_DEBUG=1 HAS_DCDC=0 HAS_BATTERY=1 KEY_ROTATION_INTERVAL=300 MAX_KEYS=200 ADVERTISING_INTERVAL=2000 ADV_KEYS_FILE=./R0VVSW_keyfile"
+else
+    echo ""
+    echo "❌ 编译或刷写失败，请检查错误信息"
+    echo "💡 常见问题排查:"
+    echo "   1. 确保 ST-Link V2 正确连接到 nRF52810"
+    echo "   2. 检查硬件连接是否正确"
+    echo "   3. 确保没有其他程序占用调试器"
+    echo "   4. 检查工具链是否正确安装"
+    exit 1
+fi
