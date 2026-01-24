@@ -134,6 +134,36 @@ while true; do
         fi
     else
         echo "✅ 找到密钥文件: $KEY_FILE_PATH"
+        
+        # --- 密钥文件校验 ---
+        # 1. 读取第一个字节 (密钥数量)
+        KEY_COUNT=$(od -An -t u1 -N 1 "$KEY_FILE_PATH" | tr -d ' ')
+        
+        # 2. 计算预期大小: 1 (头) + key_count * 28 (每条公钥28字节)
+        EXPECTED_SIZE=$((1 + KEY_COUNT * 28))
+        ACTUAL_SIZE=$(wc -c < "$KEY_FILE_PATH" | tr -d ' ')
+        
+        if [ "$ACTUAL_SIZE" -ne "$EXPECTED_SIZE" ]; then
+            echo "❌ 错误: 密钥文件损坏或格式无效！"
+            echo "   声明包含 $KEY_COUNT 个密钥"
+            echo "   预期大小: $EXPECTED_SIZE 字节"
+            echo "   实际大小: $ACTUAL_SIZE 字节"
+            echo "请重新生成密钥文件。"
+            read -p "按 Enter 键退出..."
+            exit 1
+        else
+            echo "✅ 密钥文件格式校验通过 (包含 $KEY_COUNT 个密钥)"
+        fi
+        
+        # --- JSON 备份提醒 ---
+        JSON_FILE="$PROJECT_ROOT/config/${DEVICE_PREFIX}$(printf "%03d" $DEVICE_NUMBER)_devices.json"
+        if [ -f "$JSON_FILE" ]; then
+            echo "💡 提示: 对应的配置文件已找到: $(basename "$JSON_FILE")"
+            echo "   ⚠️  请务必备份此 JSON 文件！没有它，你将无法追踪此设备！"
+        else
+            echo "⚠️  警告: 未找到对应的 JSON 配置文件！"
+            echo "   你可能无法在 OpenHaystack 中查看此设备的位置。"
+        fi
     fi
     
     echo "--------------------------------------------------------"

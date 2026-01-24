@@ -70,6 +70,8 @@
   * 开发基于 Electron/Flutter 的桌面端程序。
   * **小白模式**: 鼠标点一点，固件自动刷进去，无需接触终端。
   * **可视化配置**: 拖拽修改广播频率、电池曲线。
+  
+  <p align="center"><img src="docs/assets/roadmap_gui_concept.png" width="300" alt="GUI Concept"></p>
 
 * [ ] **🪟 Windows 平台原生支持**
   * 当前脚本基于 Bash (macOS/Linux)。
