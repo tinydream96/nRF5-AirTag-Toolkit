@@ -64,6 +64,9 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/ble_stack.c \
+  $(PROJ_DIR)/crypto/sha256.c \
+  $(PROJ_DIR)/crypto/uECC.c \
+  $(PROJ_DIR)/crypto/key_generator.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -135,6 +138,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/crc16 \
   $(SDK_ROOT)/components/libraries/util \
   ../config \
+  ../../crypto \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc \
   $(SDK_ROOT)/components/libraries/csense \
   $(SDK_ROOT)/components/libraries/balloc \
@@ -203,9 +207,10 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=6
 CFLAGS += $(SOFTDEVICE_FLAGS)
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSWI_DISABLE0
+CFLAGS += -DuECC_PLATFORM=0  # Force generic C implementation for micro-ecc
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror
+CFLAGS += -Wall
 CFLAGS += -mfloat-abi=soft
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing

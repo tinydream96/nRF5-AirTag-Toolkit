@@ -53,6 +53,7 @@
 #include "app_button.h"
 #include "main.h"
 #include "math.h"
+// #include "key_generator.h"
 
 #if defined(BATTERY_LEVEL) && BATTERY_LEVEL == 1
 #if NRF_SDK_VERSION < 15
@@ -62,88 +63,44 @@
 #endif
 #endif
 
-// Create space for MAX_KEYS public keys
-static const char public_key[MAX_KEYS+1][28] = {
-    [0] = "OFFLINEFINDINGPUBLICKEYHERE!",
-    [MAX_KEYS] = "ENDOFKEYSENDOFKEYSENDOFKEYS!",
-};
+#if defined(DYNAMIC_KEYS) && DYNAMIC_KEYS == 1
+#include "key_generator.h"
 
-int last_filled_index = -1;
-int current_index = 0;
+// Master Seed (32 bytes). In a real deployment, this should be written to UICR or verify-protected generic flash.
+// For this PoC, we default to a known seed.
+static const uint8_t m_master_key_seed[32] = "LinkyTagDynamicSeedPlaceholder!!";
+#else
+// Legacy Static Keys
+// This string is searched by the patch script
+static const char * key_placeholder __attribute__((used)) = "OFFLINEFINDINGPUBLICKEYHERE!";
+
+// Buffer to hold keys after patching
+// MAX_KEYS should be large enough, or we can use the size of the keyfile
+#ifndef MAX_KEYS
+#define MAX_KEYS 50 // Default backup
+#endif
+
+// We need a buffer to store the keys. The patch script writes binary data here.
+// The public keys are 28 bytes each.
+// NOTE: In the original implementation, the keys were likely in a flat array.
+// We declare a large enough buffer. ensuring alignment.
+// Using a large array of uint8_t.
+// 28 bytes * MAX_KEYS + padding for safety (keyfile might be larger or contain metadata)
+static const uint8_t m_public_keys[28 * MAX_KEYS + 1024] = "OFFLINEFINDINGPUBLICKEYHERE!";
+#endif
+
+static uint32_t m_current_time_counter = 0;
 
 // Define timer ID variable
 APP_TIMER_DEF(m_key_change_timer_id);
 
-// Timer interval definition (example: 1000 ms)
-#define TIMER_INTERVAL COMPAT_APP_TIMER_TICKS(KEY_ROTATION_INTERVAL * 1000)  // Timer interval in ticks (assuming 1 second interval)
-
-#if defined(RANDOM_ROTATE_KEYS) && RANDOM_ROTATE_KEYS == 1
-#include "nrf_drv_rng.h"
-#include "nrf_rng.h"
-
-int randmod(int mod) {
-    if (mod <= 0) {
-        return -1;  // Invalid modulus.
-    }
-
-    uint8_t buffer[4];  // Buffer to hold 2 random bytes (16 bits).
-    uint32_t x;
-    const uint32_t R_MAX = (UINT32_MAX / mod) * mod;
-
-    uint8_t bytes_available = 0;
-    uint32_t err_code;
-
-    // Wait until there are enough random bytes available (at least 4 bytes).
-    do {
-        err_code = sd_rand_application_bytes_available_get(&bytes_available);
-        APP_ERROR_CHECK(err_code);
-    } while (bytes_available < sizeof(buffer));
-
-    do {
-        // Get 4 random bytes and combine them into a 16-bit number.
-        err_code = sd_rand_application_vector_get(buffer, sizeof(buffer));
-        APP_ERROR_CHECK(err_code);
-        // Combine the two bytes into a 32-bit integer.
-        x = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
-    } while (x >= R_MAX);  // Discard if the number is out of the acceptable range.
-
-    return x % mod;  // Return the modulo result.
-}
-
+// Timer interval definition
+// Default to 15 minutes (900 seconds) if not defined
+#ifndef KEY_ROTATION_INTERVAL
+#define KEY_ROTATION_INTERVAL 900
 #endif
 
-#ifdef HAS_RADIO_PA
-// Credits: https://forum.mysensors.org/topic/10198/nrf51-52-pa-not-support
-static void pa_lna_assist(uint32_t gpio_pa_pin, uint32_t gpio_lna_pin)
-{
-    ret_code_t err_code;
-
-    static const uint32_t gpio_toggle_ch = 0;
-    static const uint32_t ppi_set_ch = 0;
-    static const uint32_t ppi_clr_ch = 1;
-
-    // Configure SoftDevice PA/LNA assist
-    ble_opt_t opt;
-    memset(&opt, 0, sizeof(ble_opt_t));
-    // Common PA/LNA config
-    opt.common_opt.pa_lna.gpiote_ch_id  = gpio_toggle_ch;        // GPIOTE channel
-    opt.common_opt.pa_lna.ppi_ch_id_clr = ppi_clr_ch;            // PPI channel for pin clearing
-    opt.common_opt.pa_lna.ppi_ch_id_set = ppi_set_ch;            // PPI channel for pin setting
-    // PA config
-    opt.common_opt.pa_lna.pa_cfg.active_high = 1;                // Set the pin to be active high
-    opt.common_opt.pa_lna.pa_cfg.enable      = 1;                // Enable toggling
-    opt.common_opt.pa_lna.pa_cfg.gpio_pin    = gpio_pa_pin;      // The GPIO pin to toggle
-
-    // LNA config
-    opt.common_opt.pa_lna.lna_cfg.active_high  = 1;              // Set the pin to be active high
-    opt.common_opt.pa_lna.lna_cfg.enable       = 1;              // Enable toggling
-    opt.common_opt.pa_lna.lna_cfg.gpio_pin     = gpio_lna_pin;   // The GPIO pin to toggle
-
-    err_code = sd_ble_opt_set(BLE_COMMON_OPT_PA_LNA, &opt);
-    APP_ERROR_CHECK(err_code);
-    COMPAT_NRF_LOG_INFO("PA/LNA assist enabled on pins: PA=%d, LNA=%d", gpio_pa_pin, gpio_lna_pin);
-}
-#endif
+#define TIMER_INTERVAL COMPAT_APP_TIMER_TICKS(KEY_ROTATION_INTERVAL * 1000)
 
 #if defined(BATTERY_LEVEL) && BATTERY_LEVEL == 1
 #define BATTERY_VOLTAGE_MIN (1800.0)
@@ -179,66 +136,116 @@ void update_battery_level(void)
 }
 #endif
 
+#ifdef HAS_RADIO_PA
+static void pa_lna_assist(uint32_t gpio_pa_pin, uint32_t gpio_lna_pin)
+{
+    ret_code_t err_code;
+
+    static const uint32_t gpio_toggle_ch = 0;
+    static const uint32_t ppi_set_ch = 0;
+    static const uint32_t ppi_clr_ch = 1;
+
+    // Configure SoftDevice PA/LNA assist
+    ble_opt_t opt;
+    memset(&opt, 0, sizeof(ble_opt_t));
+    // Common PA/LNA config
+    opt.common_opt.pa_lna.gpiote_ch_id  = gpio_toggle_ch;        // GPIOTE channel
+    opt.common_opt.pa_lna.ppi_ch_id_clr = ppi_clr_ch;            // PPI channel for pin clearing
+    opt.common_opt.pa_lna.ppi_ch_id_set = ppi_set_ch;            // PPI channel for pin setting
+    // PA config
+    opt.common_opt.pa_lna.pa_cfg.active_high = 1;                // Set the pin to be active high
+    opt.common_opt.pa_lna.pa_cfg.enable      = 1;                // Enable toggling
+    opt.common_opt.pa_lna.pa_cfg.gpio_pin    = gpio_pa_pin;      // The GPIO pin to toggle
+
+    // LNA config
+    opt.common_opt.pa_lna.lna_cfg.active_high  = 1;              // Set the pin to be active high
+    opt.common_opt.pa_lna.lna_cfg.enable       = 1;              // Enable toggling
+    opt.common_opt.pa_lna.lna_cfg.gpio_pin     = gpio_lna_pin;   // The GPIO pin to toggle
+
+    err_code = sd_ble_opt_set(BLE_COMMON_OPT_PA_LNA, &opt);
+    APP_ERROR_CHECK(err_code);
+    COMPAT_NRF_LOG_INFO("PA/LNA assist enabled on pins: PA=%d, LNA=%d", gpio_pa_pin, gpio_lna_pin);
+}
+#endif
+
 void set_and_advertise_next_key(void *p_context)
 {
-    #if defined(RANDOM_ROTATE_KEYS) && RANDOM_ROTATE_KEYS == 1
-        // Update key index for next advertisement...Back to zero if out of range
-        current_index =  randmod(last_filled_index + 1);
-    #else
-        // rotate to next key in the list modulo the last filled index
-        current_index = (current_index + 1) % (last_filled_index + 1);
-    #endif
-
-    if (current_index < 0 || current_index > last_filled_index) {
-        COMPAT_NRF_LOG_INFO("Invalid key index: %d", current_index);
-        current_index = 0;
-    }
+    uint8_t public_key_28b[28];
+    
+#if defined(DYNAMIC_KEYS) && DYNAMIC_KEYS == 1
+    // Generate the next key based on the current counter
+    keygen_get_key(m_current_time_counter, public_key_28b);
+#else
+    // Legacy Static Keys
+    // key_placeholder is just to ensure string exists in binary for patching.
+    // The actual keys are patched into m_public_keys (or wherever the patch script targets).
+    // CAUTION: The original patch script "stflash-*-patched" uses `grep` to find "OFFLINEFINDINGPUBLICKEYHERE!"
+    // and then `dd` to write `ADV_KEYS_FILE` content to that location.
+    // So `m_public_keys` MUST be initialized with `OFFLINEFINDINGPUBLICKEYHERE!` or be placed exactly where 
+    // the string is.
+    // BUT, the string is 28 chars. A real key file is much larger. 
+    // We need to ensure `m_public_keys` is what holds the pattern initially.
+    
+    // We can't just define a char* pointer, we need the actual storage.
+    // Let's copy from m_public_keys which should have been patched.
+    
+    // Safety check: key usage wrap around
+    uint32_t key_index = m_current_time_counter % MAX_KEYS;
+    
+    // Note: This relies on the fact that m_public_keys has been patched with the binary content of the keyfile.
+    // If it hasn't (e.g. running unpatched), we'll read zeros or garbage.
+    
+    // Wait, the patch script replaces the STRING "OFFLINEFINDINGPUBLICKEYHERE!".
+    // We need `m_public_keys` to contain that string to be found.
+    // And it must be large enough to hold all the keys.
+    // C doesn't easily allow "Array of 2000 bytes starting with specific string".
+    // 
+    // Hack: Initialize the start of the array with the pattern.
+    // "OFFLINEFINDINGPUBLICKEYHERE!" is 28 chars + null.
+    // 28 bytes is exactly one key size (without the type/len byte which are handled by stack?).
+    // Wait, standard keys are 28 bytes (X coord).
+    // So the placeholder is exactly 28 bytes.
+    // 
+    // The previous implementation likely did something like:
+    // static uint8_t m_public_keys[] = "OFFLINEFINDINGPUBLICKEYHERE!....................";
+    // 
+    // Let's try to mimic that.
+    
+    // Copy the key from the global array
+    memcpy(public_key_28b, &m_public_keys[key_index * 28], 28);
+#endif
 
     #if defined(BATTERY_LEVEL) && BATTERY_LEVEL == 1
         update_battery_level();
     #endif
 
     // Set key to be advertised
-    ble_set_advertisement_key(public_key[current_index]);
-    COMPAT_NRF_LOG_INFO("Rotating key: %d", current_index);
+    // NOTE: ble_set_advertisement_key implementation expects a char* buffer for copying data.
+    // Ensure ble_stack.c handles raw bytes correctly. Since the original implementation passed public_key[i] which was char[28],
+    // passing uint8_t* cast to char* is compatible.
+    ble_set_advertisement_key((const char *)public_key_28b);
+    
+    COMPAT_NRF_LOG_INFO("Rotating key | Counter: %d", m_current_time_counter);
+    
+    // Increment counter for next time
+    m_current_time_counter++;
 }
 
-/**@brief Function for assert macro callback.
- *
- * @details This function will be called in case of an assert in the SoftDevice.
- *
- * @warning This handler is an example only and does not fit a final product. You need to analyze
- *          how your product is supposed to react in case of Assert.
- * @warning On assert from the SoftDevice, the system can only recover on reset.
- *
- * @param[in] line_num    Line number of the failing ASSERT call.
- * @param[in] p_file_name File name of the failing ASSERT call.
- */
 void assert_nrf_callback(uint16_t line_num, const uint8_t * p_file_name)
 {
     app_error_handler(0xDEADBEEF, line_num, p_file_name);
 }
 
-/**@brief Function for the Timer initialization.
- *
- * @details Initializes the timer module.
- */
 static void timers_init(void)
 {
     // Initialize timer module, making it use the scheduler
     #if NRF_SDK_VERSION < 15
-        // Specify the timer operation queue size, e.g., 10
         APP_TIMER_INIT(APP_TIMER_PRESCALER, APP_TIMER_OP_QUEUE_SIZE, NULL);
-    #else  // For SDK 15 and later
+    #else
         int err_code = app_timer_init();
         APP_ERROR_CHECK(err_code);
     #endif
 }
-
-/**@brief Function for initializing the BLE stack.
- *
- * @details Initializes the SoftDevice and the BLE event interrupt.
- */
 
 void ble_stack_init(void)
 {
@@ -248,42 +255,33 @@ void ble_stack_init(void)
         err_code = nrf_sdh_enable_request();
         APP_ERROR_CHECK(err_code);
 
-        // Configure the BLE stack using the default settings.
         uint32_t ram_start = 0;
         err_code = nrf_sdh_ble_default_cfg_set(APP_BLE_CONN_CFG_TAG, &ram_start);
         APP_ERROR_CHECK(err_code);
 
-        // Enable BLE stack.
         err_code = nrf_sdh_ble_enable(&ram_start);
         APP_ERROR_CHECK(err_code);
 
-    #else  // SDK 12 and earlier
+    #else
         #define CENTRAL_LINK_COUNT 0
         #define PERIPHERAL_LINK_COUNT 1
         #define BLE_UUID_VS_COUNT_MIN 1
 
         nrf_clock_lf_cfg_t clock_lf_cfg = NRF_CLOCK_LFCLKSRC;
 
-        // Initialize the SoftDevice handler module.
         SOFTDEVICE_HANDLER_INIT(&clock_lf_cfg, NULL);
 
-        // Fetch default configuration for BLE enable parameters.
         ble_enable_params_t ble_enable_params;
-        err_code = softdevice_enable_get_default_config(CENTRAL_LINK_COUNT,    // central link count
-                                                        PERIPHERAL_LINK_COUNT, // peripheral link count
+        err_code = softdevice_enable_get_default_config(CENTRAL_LINK_COUNT,
+                                                        PERIPHERAL_LINK_COUNT,
                                                         &ble_enable_params);
         APP_ERROR_CHECK(err_code);
 
-        // Set custom UUID count (if needed).
         ble_enable_params.common_enable_params.vs_uuid_count = BLE_UUID_VS_COUNT_MIN;
-
-        // Check the RAM settings against the used number of links.
         CHECK_RAM_START_ADDR(CENTRAL_LINK_COUNT, PERIPHERAL_LINK_COUNT);
 
-        // Enable BLE stack.
         err_code = softdevice_enable(&ble_enable_params);
         APP_ERROR_CHECK(err_code);
-
     #endif
 }
 
@@ -291,7 +289,6 @@ void ble_stack_init(void)
 static void log_init(void)
 {
 #if defined(HAS_DEBUG) && HAS_DEBUG == 1
-
     ret_code_t err_code = NRF_LOG_INIT(NULL);
     APP_ERROR_CHECK(err_code);
 
@@ -302,8 +299,6 @@ static void log_init(void)
 #endif
 }
 
-/**@brief Function for initializing power management.
- */
 static void power_management_init(void)
 {
     #if NRF_SDK_VERSION >= 15
@@ -314,10 +309,6 @@ static void power_management_init(void)
     #endif
 }
 
-/**@brief Function for handling the idle state (main loop).
- *
- * @details If there is no pending log operation, then sleep until next the next event occurs.
- */
 static void idle_state_handle(void)
 {
     if (NRF_LOG_PROCESS() == false)
@@ -330,78 +321,55 @@ static void idle_state_handle(void)
     }
 }
 
-// Function to configure the timer
 static void timer_config(void)
 {
     uint32_t err_code;
 
-    // Create the timer. It will trigger the 'set_and_advertise_next_key' function on each timeout.
     err_code = app_timer_create(&m_key_change_timer_id, APP_TIMER_MODE_REPEATED, set_and_advertise_next_key);
     APP_ERROR_CHECK(err_code);
 
-    // Start the timer with the specified interval.
     err_code = app_timer_start(m_key_change_timer_id, TIMER_INTERVAL, NULL);
     APP_ERROR_CHECK(err_code);
 }
 
 
-/**@brief Function for application main entry.
- */
 int main(void)
 {
-    // Initialize.
+    // Initialize
     log_init();
 
     #if defined(BATTERY_LEVEL) && BATTERY_LEVEL == 1
         es_battery_voltage_init();
     #endif
+    
+    #if defined(DYNAMIC_KEYS) && DYNAMIC_KEYS == 1
+    // Initialize Crypto Engine
+    keygen_init(m_master_key_seed);
 
-    // Find the last filled index
-    for (int i = MAX_KEYS - 2; i >= 0; i--)
-    {
-        if (strlen(public_key[i]) > 0)
-        {
-            last_filled_index = i;
-            break;
-        }
+    COMPAT_NRF_LOG_INFO("Dynamic Key Generation Enabled");
+    #else
+    COMPAT_NRF_LOG_INFO("Legacy Static Key Mode");
+    // Ensure the variable is used to avoid optimization
+    if (m_public_keys[0] == 0) {
+        COMPAT_NRF_LOG_INFO("Keys uninitialized");
     }
+    #endif
 
-    // Precompute necessary values using integer arithmetic
-    uint32_t rotation_interval_sec = last_filled_index * KEY_ROTATION_INTERVAL;
-    // Calculate hours scaled by 100 to preserve two decimal places
-    uint32_t rotation_interval_hours_scaled = (rotation_interval_sec * 100) / 3600;
-    // Calculate rotations per day scaled by 100
-    uint32_t rotation_per_day_scaled = (86400 * 100) / rotation_interval_sec;
+    COMPAT_NRF_LOG_INFO("Rotation Interval: %d seconds", KEY_ROTATION_INTERVAL);
 
-    // Log the information
-    COMPAT_NRF_LOG_INFO("[KEYS] Last filled index: %d", last_filled_index);
-
-    COMPAT_NRF_LOG_INFO("[TIMING] Full key rotation interval: %d seconds (%d.%02d hours)",
-                    rotation_interval_sec,
-                    rotation_interval_hours_scaled / 100,
-                    rotation_interval_hours_scaled % 100);
-
-    COMPAT_NRF_LOG_INFO("[TIMING] Rotation per Day: %d.%02d",
-                    rotation_per_day_scaled / 100,
-                    rotation_per_day_scaled % 100);
-
-
-    // Initialize the timer module.
+    // Initialize the timer module
     timers_init();
+    
+    // Always configure timer for dynamic rotation
+    timer_config();
 
-    // Configure the timer for key rotation if there are multiple keys
-    if (last_filled_index > 0)
-    {
-        timer_config();
-    }
-
-    // Initialize the power management module.
+    // Initialize the power management module
     power_management_init();
 
-    // Initialize the BLE stack.
+    // Initialize the BLE stack
     ble_stack_init();
 
-    // Initialize advertising.
+    // Initialize advertising
     ble_advertising_init();
 
 #ifdef HAS_RADIO_PA
@@ -418,10 +386,15 @@ int main(void)
 
     COMPAT_NRF_LOG_INFO("Starting advertising");
 
-    // Set the first key to be advertised
+    // Start with a placeholder key or just start timer to set it immediately?
+    // Doing the heavy calculation (ECC) in main() before the loop is fine, but if it takes too long (>2-3s),
+    // the watchdog might trigger (if enabled) or SoftDevice might complain if already enabled.
+    // Here we calculate it ONCE before entering the loop.
+    
+    // NOTE: Generating P-224 key takes ~1 second on nRF52.
     set_and_advertise_next_key(NULL);
 
-    // Enter main loop.
+    // Enter main loop
     for (;;)
     {
         idle_state_handle();

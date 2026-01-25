@@ -1,5 +1,6 @@
 PROJECT_NAME     := ble_app_haystack_$(SOFTDEVICE_MODEL)
-TARGETS          := nrf51822_xxac nrf51822_xxac-dcdc
+TARGETS          := nrf51822_xxac nrf51822_xxac-dcdc nrf51822_xxab
+
 OUTPUT_DIRECTORY := _build
 
 NRF_ROOT := ../..
@@ -14,8 +15,11 @@ SOFTDEVICE_VERSION := 2.0.1
 $(OUTPUT_DIRECTORY)/nrf51822_xxac.out: \
   LINKER_SCRIPT  := ble_app_haystack_gcc_nrf51.ld
 
-  $(OUTPUT_DIRECTORY)/nrf51822_xxac-dcdc.out: \
+$(OUTPUT_DIRECTORY)/nrf51822_xxac-dcdc.out: \
   LINKER_SCRIPT  := ble_app_haystack_gcc_nrf51.ld
+
+$(OUTPUT_DIRECTORY)/nrf51822_xxab.out: \
+  LINKER_SCRIPT  := ble_app_haystack_gcc_nrf51_xxab.ld
 
 ifeq ($(HAS_BATTERY), 1)
   SRC_FILES += \
@@ -56,6 +60,17 @@ SRC_FILES += \
   $(SDK_ROOT)/components/toolchain/gcc/gcc_startup_nrf51.S \
   $(SDK_ROOT)/components/toolchain/system_nrf51.c \
   $(SDK_ROOT)/components/softdevice/common/softdevice_handler/softdevice_handler.c \
+
+ifeq ($(DYNAMIC_KEYS), 1)
+  SRC_FILES += \
+    $(PROJ_DIR)/crypto/key_generator.c \
+    $(PROJ_DIR)/crypto/sha256.c \
+    $(PROJ_DIR)/crypto/uECC.c
+endif
+
+ifeq ($(DYNAMIC_KEYS), 1)
+  INC_FOLDERS += $(PROJ_DIR)/crypto
+endif
 
 # Include folders common to all targets
 INC_FOLDERS += \

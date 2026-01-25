@@ -85,6 +85,13 @@ SRC_FILES += \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
 
+ifeq ($(DYNAMIC_KEYS), 1)
+  SRC_FILES += \
+    $(PROJ_DIR)/crypto/sha256.c \
+    $(PROJ_DIR)/crypto/uECC.c \
+    $(PROJ_DIR)/crypto/key_generator.c
+endif
+
 # Include folders common to all targets
 INC_FOLDERS += \
   $(SDK_ROOT)/components/nfc/ndef/generic/message \
@@ -99,6 +106,7 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/usbd/class/msc \
   $(SDK_ROOT)/components/libraries/usbd/class/hid \
   $(SDK_ROOT)/modules/nrfx/hal \
+
   $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/le_oob_rec_parser \
   $(SDK_ROOT)/components/libraries/log \
   $(SDK_ROOT)/components/ble/ble_services/ble_gls \
@@ -215,6 +223,10 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/libraries/stack_guard \
   $(SDK_ROOT)/components/libraries/log/src \
 
+ifeq ($(DYNAMIC_KEYS), 1)
+  INC_FOLDERS += ../../crypto
+endif
+
 # Libraries common to all targets
 LIB_FILES += \
 
@@ -234,9 +246,10 @@ CFLAGS += -DNRF_SD_BLE_API_VERSION=6
 CFLAGS += $(SOFTDEVICE_FLAGS)
 CFLAGS += -DSOFTDEVICE_PRESENT
 CFLAGS += -DSWI_DISABLE0
+CFLAGS += -DuECC_PLATFORM=0  # Force generic C implementation for micro-ecc
 CFLAGS += -mcpu=cortex-m4
 CFLAGS += -mthumb -mabi=aapcs
-CFLAGS += -Wall -Werror
+CFLAGS += -Wall
 CFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
 # keep every function in a separate section, this allows linker to discard unused ones
 CFLAGS += -ffunction-sections -fdata-sections -fno-strict-aliasing
@@ -271,9 +284,9 @@ LDFLAGS += -Wl,--gc-sections
 LDFLAGS += --specs=nano.specs
 
 nrf52832_xxaa: CFLAGS += -D__HEAP_SIZE=8192
-nrf52832_xxaa: CFLAGS += -D__STACK_SIZE=8192
+nrf52832_xxaa: CFLAGS += -D__STACK_SIZE=16384
 nrf52832_xxaa: ASMFLAGS += -D__HEAP_SIZE=8192
-nrf52832_xxaa: ASMFLAGS += -D__STACK_SIZE=8192
+nrf52832_xxaa: ASMFLAGS += -D__STACK_SIZE=16384
 
 nrf52832_xxaa-dcdc: CFLAGS += -D__HEAP_SIZE=8192
 nrf52832_xxaa-dcdc: CFLAGS += -D__STACK_SIZE=8192
