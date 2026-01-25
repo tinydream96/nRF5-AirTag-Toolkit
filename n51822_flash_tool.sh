@@ -253,6 +253,31 @@ while true; do
         
         echo -e "\033[1;33m🔑 Generated Seed for $DEVICE_NAME: $(cat $SEED_HEX_FILE | cut -c 1-16)...\033[0m"
         echo -e "\033[1;33m📂 Seed saved to: $SEED_HEX_FILE\033[0m"
+        
+        # --- NEW: Generate Offline Keys from Seed ---
+        echo
+        read -p "是否需要生成离线 Key 文件用于追踪? (默认生成 200 个) [Y/n]: " GEN_KEYS_CHOICE
+        if [ -z "$GEN_KEYS_CHOICE" ] || [[ "$GEN_KEYS_CHOICE" =~ ^[Yy]$ ]]; then
+            read -p "请输入生成数量 (建议 < 2000, 默认 200): " GEN_COUNT
+            GEN_COUNT=${GEN_COUNT:-200}
+            
+            echo -e "\033[1;33m⚙️  正在从 Seed 预计算 $GEN_COUNT 个密钥...\033[0m"
+            # Get raw hex string
+            SEED_HEX_STR=$(cat "$SEED_HEX_FILE")
+            
+            python3 "$PROJECT_ROOT/heystack-nrf5x/tools/generate_keys_from_seed.py" \
+                -s "$SEED_HEX_STR" \
+                -n "$GEN_COUNT" \
+                -p "$DEVICE_NAME" \
+                -o "$PROJECT_ROOT/config/" > /dev/null 2>&1
+            
+            if [ $? -eq 0 ]; then
+                echo -e "\033[32m✅ 离线密钥生成成功!\033[0m"
+                echo "   -> Config: config/${DEVICE_NAME}_devices.json"
+            else
+                echo -e "\033[31m❌ 密钥生成失败，请检查 python 环境\033[0m"
+            fi
+        fi
     fi
     
     # --- Static Mode: Check Keyfile ---
