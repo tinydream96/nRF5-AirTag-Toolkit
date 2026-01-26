@@ -130,18 +130,23 @@ fi
 MODE=$MODE_CHOICE
 
 echo
+echo "正在检测硬件..."
+AUTO_DEBUGGER=""
+if ioreg -p IOUSB -l | grep -qi "J-Link"; then
+    AUTO_DEBUGGER="1"
+    echo -e "\033[36m[AUTO] 检测到 Segger J-Link 连接\033[0m"
+elif ioreg -p IOUSB -l | grep -Ei "ST-Link|STLINK" > /dev/null; then
+    AUTO_DEBUGGER="2"
+    echo -e "\033[36m[AUTO] 检测到 ST-Link 连接\033[0m"
+fi
+
 echo "请选择调试器:"
 echo " 1. [J-Link]  nrfjprog (推荐)"
 echo " 2. [ST-Link] OpenOCD"
-read -p "请输入选项 (默认 1): " DEBUG_CHOICE
-if [ -z "$DEBUGGER" ]; then
-    # Note: Variable name fix in logic below, originally was assigning to DEBUGGER directly
-    :
-fi
-if [ -z "$DEBUG_CHOICE" ]; then
-    DEBUG_CHOICE="1"
-    echo -e "\033[32m  -> 使用默认值: J-Link\033[0m"
-fi
+
+DEFAULT_DEBUG_CHOICE=${AUTO_DEBUGGER:-1}
+read -p "请输入选项 (默认 $DEFAULT_DEBUG_CHOICE): " DEBUG_CHOICE
+DEBUG_CHOICE=${DEBUG_CHOICE:-$DEFAULT_DEBUG_CHOICE}
 DEBUGGER=$DEBUG_CHOICE
 
 echo

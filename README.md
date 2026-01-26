@@ -22,6 +22,13 @@
 * **⚡️ 极速自动化 (Zero-Friction Flashing)**
   * 告别复杂的命令行，一个脚本搞定编译、打补丁、烧录全流程。
   * 自动识别芯片型号，自动处理 SoftDevice 协议栈合并。
+* **🖥️ Web Studio 智控中心 (New!)**
+  * **颜值巅峰**：玻璃拟态设计，极致的工业美感与交互体验。
+  * **全自动流程**：支持硬件自动识别（即插即用）、自动递增 ID、一键下载密钥包。
+  * **实时监控**：集成终端诊断日志，刷写进度一眼全局。
+
+<p align="center"><img src="docs/images/web_studio_ui.png" width="800" alt="Web Studio UI"></p>
+
 * **🔑 智能密钥管理 (Smart Key Injection)**
   * **独家功能**：解决批量刷写时 MAC 地址和密钥重复的顽疾。
   * 脚本自动为每一台设备生成独一无二的 `.key` 文件并注入固件，真正的量产级体验。
@@ -66,22 +73,19 @@
 
 我们正在构建更宏大的未来，让 Find My 开发变得像安装 App 一样简单。
 
-* [ ] **🖥️ 跨平台 GUI 客户端**
-  * 开发基于 Electron/Flutter 的桌面端程序。
-  * **小白模式**: 鼠标点一点，固件自动刷进去，无需接触终端。
-  * **可视化配置**: 拖拽修改广播频率、电池曲线。
-  
-  <p align="center"><img src="docs/assets/roadmap_gui_concept.png" width="300" alt="GUI Concept"></p>
+* [x] **🖥️ 跨平台 GUI 客户端 (Web Studio)**
+  * **全新推出**: 基于 Web 技术的 Studio 控制台，支持 macOS/Linux。
+  * **自动化体验**: 鼠标点一点，固件自动补丁、编译、刷写全流程。
 
 * [ ] **🪟 Windows 平台原生支持**
   * 当前脚本基于 Bash (macOS/Linux)。
   * 未来将移植 PowerShell 版本，让 Windows 用户不仅能在 WSL 里跑，还能直接原生运行。
 
-* [ ] **♾️ 全系 nRF 芯片支持**
+* [x] **♾️ 全系 nRF 芯片支持**
   * [x] nRF52810 (已支持)
   * [x] nRF52832 (已支持)
+  * [x] nRF51822 (已支持)
   * [ ] **nRF52840**: 支持 USB Dongle 形态。
-  * [ ] **nRF51822**: 复活吃灰的老古董芯片 (开发中)。
 
 ---
 
