@@ -26,6 +26,37 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 LOG_FILE = os.path.join(PROJECT_ROOT, "device_flash_log_web.txt")
 CONFIG_DIR = os.path.join(PROJECT_ROOT, "config")
 
+# --- Chip Config Map (NEW) ---
+CHIP_MAP = {
+    "1": {
+        "name": "nRF51822",
+        "family": "nrf51",
+        "make_dir": "heystack-nrf5x/nrf51822/armgcc",
+        "build_name": "nrf51822_xxab",
+        "offset": "0x1B000",
+        "sd_hex": "nrf-sdk/nRF5_SDK_12.3.0_d7731ad/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex",
+        "openocd_target": "target/nrf51.cfg"
+    },
+    "2": {
+        "name": "nRF52832",
+        "family": "nrf52",
+        "make_dir": "heystack-nrf5x/nrf52832/armgcc",
+        "build_name": "nrf52832_xxaa",
+        "offset": "0x26000",
+        "sd_hex": "nrf-sdk/nRF5_SDK_15.3.0_59ac345/components/softdevice/s132/hex/s132_nrf52_6.1.1_softdevice.hex",
+        "openocd_target": "target/nrf52.cfg"
+    },
+    "3": {
+        "name": "nRF52810",
+        "family": "nrf52",
+        "make_dir": "heystack-nrf5x/nrf52810/armgcc",
+        "build_name": "nrf52810_xxaa",
+        "offset": "0x19000",
+        "sd_hex": "nrf-sdk/nRF5_SDK_15.3.0_59ac345/components/softdevice/s112/hex/s112_nrf52_6.1.1_softdevice.hex",
+        "openocd_target": "target/nrf52.cfg"
+    }
+}
+
 def log(msg, level="info"):
     """Log to memory and file"""
     timestamp = datetime.now().strftime('%H:%M:%S')
@@ -67,8 +98,6 @@ def flash_task(config):
     STATE["last_generated_file"] = None
     
     # Logic: Total 6 chars. 
-    # If prefix is 'MSF' (3), number pads to 3. 
-    # If prefix is 'A' (1), number pads to 5.
     prefix = config['prefix'].upper()
     start_num = int(config['start_num'])
     padding = 6 - len(prefix)
@@ -79,16 +108,27 @@ def flash_task(config):
     STATE["current_device"] = device_name
     files_to_zip = [] # List of (abis_path, arcname)
     
+    # Get Chip Config
+    chip_id = config.get('chip', '1')
+    CHIP_CFG = CHIP_MAP.get(chip_id)
+    if not CHIP_CFG:
+        log(f"Invalid Chip ID: {chip_id}", "error")
+        STATE["is_flashing"] = False
+        return
+
     try:
         log("=" * 40, "info")
         log(f"READY: Starting Flash Task for {device_name}", "accent")
+        log(f"Chip: {CHIP_CFG['name']}", "accent")
         log("=" * 40, "info")
         log(f"Configuration: {config}", "info")
         
         # --- 1. Prepare Paths ---
         seed_dir = os.path.join(PROJECT_ROOT, "seeds", device_name)
-        build_dir = os.path.join(PROJECT_ROOT, "heystack-nrf5x/nrf51822/armgcc/_build")
-        make_dir = os.path.join(PROJECT_ROOT, "heystack-nrf5x/nrf51822/armgcc")
+        
+        # New dynamic paths
+        make_dir = os.path.join(PROJECT_ROOT, CHIP_CFG['make_dir'])
+        build_dir = os.path.join(make_dir, "_build")
         
         # --- 2. Seed/Key Gen ---
         seed_bin_file = None
@@ -110,9 +150,6 @@ def flash_task(config):
             files_to_zip.append((seed_hex_file, f"seed_{device_name}.hex"))
             files_to_zip.append((seed_bin_file, f"seed_{device_name}.bin"))
             
-            # Always generate offline keys for download if requested (or default)
-            # The prompt says "Dynamic can download json and two formats of seeds"
-            # It seems user always wants this available.
             log("Generating Offline Keys...", "info")
             gen_script = os.path.join(PROJECT_ROOT, "heystack-nrf5x/tools/generate_keys_from_seed.py")
             
@@ -140,7 +177,7 @@ def flash_task(config):
                 if not os.path.exists(temp_dir): os.makedirs(temp_dir)
                 gen_script = os.path.join(PROJECT_ROOT, "heystack-nrf5x/tools/generate_keys.py")
                 key_count = config.get('key_count', 200)
-                # Ensure output path ends with slash for the script's simple string concatenation
+                # Ensure output path ends with slash
                 out_dir = temp_dir if temp_dir.endswith(os.sep) else temp_dir + os.sep
                 cmd = [sys.executable, gen_script, "-n", str(key_count), "-p", device_name, "-o", out_dir]
                 log(f"Generator Command: {' '.join(cmd)}", "info")
@@ -181,7 +218,7 @@ def flash_task(config):
 
         # --- 3. Build ---
         STATE["status_message"] = "Compiling Firmware..."
-        log("Compiling firmware...", "info")
+        log(f"Compiling firmware for {CHIP_CFG['name']}...", "info")
         run_command(["make", "-C", make_dir, "clean"])
         
         interval = int(config['base_interval']) + (int(config['start_num']) * int(config['interval_step']))
@@ -193,7 +230,8 @@ def flash_task(config):
         if config['mode'] == '1': flags.append("DYNAMIC_KEYS=1")
         else: flags.append("MAX_KEYS=200")
         
-        cmd = ["make", "-C", make_dir, "nrf51822_xxab"] + flags
+        # Use dynamic build name
+        cmd = ["make", "-C", make_dir, CHIP_CFG['build_name']] + flags
         success, output = run_command(cmd)
         if not success: raise Exception(f"Make failed: {output}")
         log("Compilation success.", "success")
@@ -201,10 +239,10 @@ def flash_task(config):
         # --- 4. Patch ---
         STATE["status_message"] = "Patching Binary..."
         log("Patching binary...", "info")
-        orig_hex = os.path.join(build_dir, "nrf51822_xxab.hex")
-        orig_bin = os.path.join(build_dir, "nrf51822_xxab.bin")
-        patch_bin = os.path.join(build_dir, "nrf51822_xxab_patched.bin")
-        patch_hex = os.path.join(build_dir, "nrf51822_xxab_patched.hex")
+        orig_hex = os.path.join(build_dir, f"{CHIP_CFG['build_name']}.hex")
+        orig_bin = os.path.join(build_dir, f"{CHIP_CFG['build_name']}.bin")
+        patch_bin = os.path.join(build_dir, f"{CHIP_CFG['build_name']}_patched.bin")
+        patch_hex = os.path.join(build_dir, f"{CHIP_CFG['build_name']}_patched.hex")
         
         run_command(["arm-none-eabi-objcopy", "-I", "ihex", "-O", "binary", orig_hex, orig_bin])
         
@@ -223,32 +261,102 @@ def flash_task(config):
             fw_data[offset : offset+len(real_key)] = real_key
             
         with open(patch_bin, "wb") as f: f.write(fw_data)
-        run_command(["arm-none-eabi-objcopy", "-I", "binary", "-O", "ihex", "--change-addresses", "0x1B000", patch_bin, patch_hex])
+        
+        # Use dynamic offset
+        run_command(["arm-none-eabi-objcopy", "-I", "binary", "-O", "ihex", "--change-addresses", CHIP_CFG['offset'], patch_bin, patch_hex])
         
         # --- 5. Flash ---
         STATE["status_message"] = "Flashing..."
-        log("Flashing device...", "info")
+        log(f"Flashing device...", "info")
         
         if config['debugger'] == '1': # J-Link
-            if config.get('flash_sd', False):
-                log("Flashing SoftDevice...", "info")
-                sd_path = "nrf-sdk/nRF5_SDK_12.3.0_d7731ad/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex"
-                run_command(["nrfjprog", "-f", "nrf51", "--program", sd_path, "--sectorerase"])
+            log("Flashing with J-Link...", "info")
+            nrfjprog_success = False
             
-            success, output = run_command(["nrfjprog", "-f", "nrf51", "--program", patch_hex, "--sectorerase", "--verify"])
-            if not success: raise Exception(f"Flash failed: {output}")
-            run_command(["nrfjprog", "-f", "nrf51", "--reset"])
+            # --- 1. Try nrfjprog first ---
+            try:
+                log("Attempting with nrfjprog...", "info")
+                if config.get('flash_sd', False):
+                    run_command(["nrfjprog", "-f", CHIP_CFG['family'], "--program", os.path.join(PROJECT_ROOT, CHIP_CFG['sd_hex']), "--sectorerase"])
+                
+                s, o = run_command(["nrfjprog", "-f", CHIP_CFG['family'], "--program", patch_hex, "--sectorerase", "--verify"])
+                if s:
+                    run_command(["nrfjprog", "-f", CHIP_CFG['family'], "--reset"])
+                    nrfjprog_success = True
+                    log("SUCCESS (nrfjprog)", "success")
+            except:
+                pass
+
+            # --- 2. Fallback to JLinkExe ---
+            if not nrfjprog_success:
+                log("nrfjprog failed. Falling back to JLinkExe...", "warning")
+                
+                # Generate JLink Script
+                jlink_script_path = os.path.join(PROJECT_ROOT, "flash_cmd_web.jlink")
+                jlink_device = ""
+                
+                if CHIP_CFG['family'] == 'nrf51':
+                    jlink_device = "nRF51822_xxAA"
+                elif CHIP_CFG['name'] == 'nRF52832':
+                    jlink_device = "nRF52832_xxAA"
+                elif CHIP_CFG['name'] == 'nRF52810':
+                    jlink_device = "nRF52810_xxAA"
+                    
+                with open(jlink_script_path, "w") as f:
+                    f.write(f"device {jlink_device}\n")
+                    f.write("si SWD\n")
+                    f.write("speed 4000\n")
+                    f.write("connect\n")
+                    f.write("r\n")
+                    f.write("h\n")
+                    
+                    if config.get('flash_sd', False):
+                        log("Flashing SoftDevice (JLink)...", "info")
+                        sd_full_path = os.path.join(PROJECT_ROOT, CHIP_CFG['sd_hex'])
+                        
+                        if CHIP_CFG['family'] == 'nrf52':
+                            # nRF52 Erase Sequence
+                            f.write("w4 4001e504 2\n") # NVMC.CONFIG = ERASE
+                            f.write("w4 4001e50c 1\n") # ERASEALL = 1
+                            f.write("sleep 100\n")
+                            f.write("w4 4001e504 0\n") # NVMC.CONFIG = READONLY
+                            f.write("r\n")
+                        else:
+                            # nRF51 can just use erase
+                            f.write("erase\n")
+                            
+                        f.write(f"loadfile {sd_full_path}\n")
+                        f.write("r\n")
+                    
+                    # Flash App
+                    f.write(f"loadfile {patch_hex}\n")
+                    f.write("r\n")
+                    f.write("g\n")
+                    f.write("exit\n")
+                
+                # Execute JLinkExe
+                success, output = run_command(["JLinkExe", "-CommandFile", jlink_script_path])
+                
+                # Cleanup
+                if os.path.exists(jlink_script_path):
+                    os.remove(jlink_script_path)
+                    
+                if not success: 
+                    raise Exception(f"JLinkExe failed: {output}")
+                
+                log("SUCCESS (JLinkExe)", "success")
             
         else: # ST-Link
-            o_cmds = ["init", "halt", "nrf51 mass_erase"]
+            flash_family = CHIP_CFG['family'] # nrf51 or nrf52
+            o_cmds = ["init", "halt", f"{flash_family} mass_erase"]
             if config.get('flash_sd', False):
-                sd_path = "nrf-sdk/nRF5_SDK_12.3.0_d7731ad/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex"
+                sd_path = os.path.join(PROJECT_ROOT, CHIP_CFG['sd_hex'])
                 o_cmds.append(f"program {sd_path} verify")
             o_cmds.append(f"program {patch_hex} verify")
             o_cmds.append("reset; exit")
             
             cmd_str = "; ".join(o_cmds)
-            success, output = run_command(["openocd", "-f", "interface/stlink.cfg", "-f", "target/nrf51.cfg", "-c", cmd_str])
+            success, output = run_command(["openocd", "-f", "interface/stlink.cfg", "-f", CHIP_CFG['openocd_target'], "-c", cmd_str])
             if not success: raise Exception(f"OpenOCD failed: {output}")
 
         log(f"SUCCESS: {device_name} Flashed!", "success")
@@ -269,31 +377,21 @@ def index():
 def download_file(filename):
     return send_from_directory(CONFIG_DIR, filename, as_attachment=True)
 
-def detect_debugger():
-    """Detects if J-Link or ST-Link is connected via USB (macOS logic)."""
-    try:
-        import subprocess
-        # Check USB devices using ioreg
-        cmd = "ioreg -p IOUSB -l"
-        output = subprocess.check_output(cmd, shell=True).decode('utf-8')
-        
-        if "J-Link" in output:
-            return "1" # J-Link
-        if "ST-Link" in output or "STLINK" in output:
-            return "2" # ST-Link
-    except:
-        pass
-    return None
-
 @app.route('/api/detect_debugger')
 def api_detect_debugger():
-    return jsonify({"debugger": detect_debugger()})
+    # ... existing detection logic ...
+    try:
+        cmd = "ioreg -p IOUSB -l"
+        output = subprocess.check_output(cmd, shell=True).decode('utf-8')
+        if "J-Link" in output: return jsonify({"debugger": "1"})
+        if "ST-Link" in output or "STLINK" in output: return jsonify({"debugger": "2"})
+    except: pass
+    return jsonify({"debugger": None})
 
 @app.route('/api/logs/clear', methods=['POST'])
 def clear_logs_api():
     STATE["logs"] = []
     STATE["status_message"] = "Ready"
-    # Also Clear File
     if os.path.exists(LOG_FILE):
         with open(LOG_FILE, "w") as f: f.write("")
     return jsonify({"success": True})
@@ -306,10 +404,8 @@ def api_flash():
     config = request.json
     if not config.get('prefix'): return jsonify({"error": "Missing prefix"}), 400
     
-    # Critical: Set state immediately to prevent double-trigger race condition
     STATE["is_flashing"] = True
     STATE["status_message"] = "Starting task..."
-    # NO LONGER CLEAR LOGS HERE - KEEP HISTORY
     
     t = threading.Thread(target=flash_task, args=(config,))
     t.start()

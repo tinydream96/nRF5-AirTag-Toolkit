@@ -127,8 +127,27 @@
             <!-- Settings -->
             <div class="flex-1 overflow-y-auto p-6 space-y-4 custom-scroll">
                 <!-- Device Group -->
-                <section class="space-y-2">
-                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1"
+                <section class="space-y-4"> <!-- Increased spacing -->
+                    <!-- Chip Selector (NEW) -->
+                    <div class="px-1">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em]"
+                                x-text="t('chipModel')">Chip Model</h3>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button @click="config.chip = '1'"
+                                :class="config.chip === '1' ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-apple-muted hover:bg-white/10'"
+                                class="py-2 rounded-lg text-[11px] font-bold transition-all">nRF51822</button>
+                            <button @click="config.chip = '2'"
+                                :class="config.chip === '2' ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-apple-muted hover:bg-white/10'"
+                                class="py-2 rounded-lg text-[11px] font-bold transition-all">nRF52832</button>
+                            <button @click="config.chip = '3'"
+                                :class="config.chip === '3' ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-apple-muted hover:bg-white/10'"
+                                class="py-2 rounded-lg text-[11px] font-bold transition-all">nRF52810</button>
+                        </div>
+                    </div>
+
+                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1 pt-2"
                         x-text="t('deviceIdentity')">General</h3>
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
@@ -220,7 +239,7 @@
                                 @click="config.flash_sd = !config.flash_sd">
                                 <span
                                     class="text-[14px] font-medium text-white/90 group-hover:text-white transition-colors"
-                                    x-text="t('flashSd')">Flash S130 Stack</span>
+                                    x-text="t('flashSd') + ' (' + getStackName() + ')'">Flash SoftDevice</span>
                                 <div class="apple-switch" :class="config.flash_sd ? 'active' : ''">
                                     <div class="apple-switch-knob"></div>
                                 </div>
@@ -328,7 +347,7 @@
                                 class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5">Stack</span>
                             <span class="font-bold text-sm"
                                 :class="config.flash_sd ? 'text-apple-green' : 'text-apple-muted'"
-                                x-text="config.flash_sd ? 'S130' : 'OFF'"></span>
+                                x-text="config.flash_sd ? getStackName() : 'OFF'"></span>
                         </div>
                         <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
                             <span
@@ -387,24 +406,24 @@
             function appData() {
                 return {
                     lang: 'zh',
-                    config: { prefix: 'MSF', start_num: 1, mode: '1', key_count: 200, debugger: '2', gen_offline: true, flash_sd: true, dcdc: false, base_interval: 2000, interval_step: 10 },
+                    config: { prefix: 'MSF', start_num: 1, mode: '1', key_count: 200, debugger: '2', chip: '1', gen_offline: true, flash_sd: true, dcdc: false, base_interval: 2000, interval_step: 10 },
                     status: 'Ready', isFlashing: false, lastNotification: null, logs: [], downloadUrl: null, autoDetected: false,
                     i18n: {
                         en: {
-                            toolkit: 'Toolkit', deviceIdentity: 'General', prefix: 'ID Prefix', index: 'Start Number', security: 'Key Mode', dynamicMode: 'Dynamic Generation', staticMode: 'Fixed Cycle',
+                            toolkit: 'Toolkit', deviceIdentity: 'General', chipModel: 'CHIP MODEL', prefix: 'ID Prefix', index: 'Start Number', security: 'Key Mode', dynamicMode: 'Dynamic Generation', staticMode: 'Fixed Cycle',
                             keyCount: 'Key Count (Max 200)',
                             dynamicDesc: 'Seeds generated infinitely in firmware. Keys rotate every 15 minutes. Highly secure.',
                             staticDesc: 'Cycles through a fixed set of {n} keys. Rotates every 15 minutes. Predictable tracking.',
-                            timing: 'Timing Settings', baseInterval: 'Interval (ms)', intervalStep: 'Step increment (ms)', hardware: 'Debugger', interface: 'Hardware Interface', flashSd: 'Flash S130 Stack',
+                            timing: 'Timing Settings', baseInterval: 'Interval (ms)', intervalStep: 'Step increment (ms)', hardware: 'Debugger', interface: 'Hardware Interface', flashSd: 'Flash SoftDevice',
                             enableDcdc: 'Enable DC/DC', startFlash: 'START FLASHING', processing: 'FLASHING...', heroTitle: 'NEXT TARGET DEVICE', heroSubtitle: 'Broadcast set at {ms}ms. High precision tracking.',
                             downloadZip: 'Download Package (.ZIP)', consoleTitle: 'Diagnostic Log', clear: 'Wipe', status_ready: 'Ready', status_busy: 'Active', status_success: 'Done', status_error: 'Error', auto: 'AUTO'
                         },
                         zh: {
-                            toolkit: '工具包', deviceIdentity: '基本设置', prefix: '识别前缀', index: '起始编号', security: '密钥模式', dynamicMode: '动态生成', staticMode: '固定循环',
+                            toolkit: '工具包', deviceIdentity: '基本设置', chipModel: '芯片型号', prefix: '识别前缀', index: '起始编号', security: '密钥模式', dynamicMode: '动态生成', staticMode: '固定循环',
                             keyCount: '密钥数量 (最大 200)',
                             dynamicDesc: '固件根据随机种子无限生成密钥。每 15 分钟更换一次，安全性极高。',
                             staticDesc: '在固定的 {n} 个密钥集合中循环切换。每 15 分钟更换一次，可控性更强。',
-                            timing: '时序设置', baseInterval: '广播间隔 (ms)', intervalStep: '间隔增量 (ms)', hardware: '调试器', interface: '接口类型', flashSd: '安装协议栈 (S130)',
+                            timing: '时序设置', baseInterval: '广播间隔 (ms)', intervalStep: '间隔增量 (ms)', hardware: '调试器', interface: '接口类型', flashSd: '安装协议栈',
                             enableDcdc: '启用内部 DC/DC', startFlash: '开始执行刷写', processing: '正在刷写...', heroTitle: '待刷写目标设备', heroSubtitle: '广播间隔设定：{ms} 毫秒。已针对查找精度优化。',
                             downloadZip: '下载密钥包 (.ZIP)', consoleTitle: '诊断日志', clear: '清除', status_ready: '就绪', status_busy: '执行中', status_success: '完成', status_error: '失败', auto: '已识别'
                         }
@@ -440,6 +459,10 @@
                         if (cls.includes('green')) return 'text-apple-green font-bold';
                         if (cls.includes('accent')) return 'text-apple-blue font-bold';
                         return 'text-white/50';
+                    },
+                    getStackName() {
+                        const map = { '1': 'S130', '2': 'S132', '3': 'S112' };
+                        return map[this.config.chip] || 'S130';
                     },
                     async startFlash() {
                         this.lastNotification = null; // Clear previous success tag

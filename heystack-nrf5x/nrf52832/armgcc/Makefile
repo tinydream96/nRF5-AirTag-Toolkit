@@ -103,10 +103,9 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/softdevice/$(SOFTDEVICE_MODEL)/headers/nrf52 \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc/acm \
   $(SDK_ROOT)/components/libraries/usbd/class/hid/generic \
-  $(SDK_ROOT)/components/libraries/usbd/class/msc \
+  $(SDK_ROOT)/components/libraries/usbd/class/hid/msc \
   $(SDK_ROOT)/components/libraries/usbd/class/hid \
   $(SDK_ROOT)/modules/nrfx/hal \
-
   $(SDK_ROOT)/components/nfc/ndef/conn_hand_parser/le_oob_rec_parser \
   $(SDK_ROOT)/components/libraries/log \
   $(SDK_ROOT)/components/ble/ble_services/ble_gls \
