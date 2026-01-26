@@ -62,7 +62,7 @@ def run_command(cmd, cwd=None):
         return False, str(e)
 
 def flash_task(config):
-    STATE["is_flashing"] = True
+    # Logs are cleared in api_flash now to ensure fresh start
     STATE["status_message"] = "Initializing..."
     STATE["last_generated_file"] = None
     
@@ -80,7 +80,9 @@ def flash_task(config):
     files_to_zip = [] # List of (abis_path, arcname)
     
     try:
-        log(f"Starting Flash Process for {device_name}", "info")
+        log("=" * 40, "info")
+        log(f"READY: Starting Flash Task for {device_name}", "accent")
+        log("=" * 40, "info")
         log(f"Configuration: {config}", "info")
         
         # --- 1. Prepare Paths ---
@@ -138,19 +140,24 @@ def flash_task(config):
                 if not os.path.exists(temp_dir): os.makedirs(temp_dir)
                 gen_script = os.path.join(PROJECT_ROOT, "heystack-nrf5x/tools/generate_keys.py")
                 key_count = config.get('key_count', 200)
-                cmd = [sys.executable, gen_script, "-n", str(key_count), "-p", device_name, "-o", temp_dir]
+                # Ensure output path ends with slash for the script's simple string concatenation
+                out_dir = temp_dir if temp_dir.endswith(os.sep) else temp_dir + os.sep
+                cmd = [sys.executable, gen_script, "-n", str(key_count), "-p", device_name, "-o", out_dir]
+                log(f"Generator Command: {' '.join(cmd)}", "info")
                 success, output = run_command(cmd)
                 if success:
-                    # Move keyfile
-                    if os.path.exists(os.path.join(temp_dir, f"{device_name}_keyfile")):
-                        shutil.move(os.path.join(temp_dir, f"{device_name}_keyfile"), os.path.join(PROJECT_ROOT, "config"))
+                    # Verify file exists before moving
+                    kf_path = os.path.join(temp_dir, f"{device_name}_keyfile")
+                    js_path = os.path.join(temp_dir, f"{device_name}_devices.json")
                     
-                    # Move json
-                    if os.path.exists(os.path.join(temp_dir, f"{device_name}_devices.json")):
-                         shutil.move(os.path.join(temp_dir, f"{device_name}_devices.json"), os.path.join(PROJECT_ROOT, "config"))
-
-                    shutil.rmtree(temp_dir)
-                    log("Keyfile generated.", "success")
+                    if os.path.exists(kf_path):
+                        shutil.move(kf_path, os.path.join(PROJECT_ROOT, "config"))
+                        if os.path.exists(js_path):
+                            shutil.move(js_path, os.path.join(PROJECT_ROOT, "config"))
+                        shutil.rmtree(temp_dir)
+                        log("Keyfile generated and moved to config.", "success")
+                    else:
+                        raise Exception(f"Generator reported success but {device_name}_keyfile not found in {temp_dir}")
                 else:
                     raise Exception(f"Keygen failed: {output}")
             
@@ -262,6 +269,15 @@ def index():
 def download_file(filename):
     return send_from_directory(CONFIG_DIR, filename, as_attachment=True)
 
+@app.route('/api/logs/clear', methods=['POST'])
+def clear_logs_api():
+    STATE["logs"] = []
+    STATE["status_message"] = "Ready"
+    # Also Clear File
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, "w") as f: f.write("")
+    return jsonify({"success": True})
+
 @app.route('/api/flash', methods=['POST'])
 def api_flash():
     if STATE["is_flashing"]:
@@ -269,6 +285,11 @@ def api_flash():
     
     config = request.json
     if not config.get('prefix'): return jsonify({"error": "Missing prefix"}), 400
+    
+    # Critical: Set state immediately to prevent double-trigger race condition
+    STATE["is_flashing"] = True
+    STATE["status_message"] = "Starting task..."
+    # NO LONGER CLEAR LOGS HERE - KEEP HISTORY
     
     t = threading.Thread(target=flash_task, args=(config,))
     t.start()

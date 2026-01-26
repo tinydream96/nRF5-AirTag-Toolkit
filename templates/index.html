@@ -275,32 +275,82 @@
             </div>
 
             <!-- Core Visualization -->
-            <div class="flex-1 w-full flex flex-col items-center justify-center space-y-12 relative overflow-hidden">
+            <!-- Core Visualization -->
+            <div class="flex-1 w-full flex flex-col items-center justify-center space-y-10 relative overflow-hidden">
                 <!-- Ambient Glow -->
                 <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
                     <div class="w-[500px] h-[500px] bg-apple-blue/20 blur-[120px] rounded-full transition-colors duration-1000"
                         :class="{'bg-apple-green/20': status === 'Success', 'bg-red-500/20': status === 'Error'}"></div>
                 </div>
 
-                <div class="relative z-10 flex flex-col items-center justify-center text-center">
-                    <h3 class="text-sm font-bold text-apple-muted uppercase tracking-[0.4em] mb-4 opacity-50"
-                        x-text="t('heroTitle')">STUDIO SERIES TARGET</h3>
-                    <div class="text-[120px] font-bold tracking-tighter text-white leading-none drop-shadow-2xl"
-                        x-text="padDeviceName(config.prefix, config.start_num)"></div>
-                    <p class="text-apple-muted font-medium mt-6 max-w-sm leading-relaxed text-[15px]"
-                        x-text="t('heroSubtitle', {ms: config.base_interval})"></p>
+                <div class="relative z-10 flex flex-col items-center justify-center text-center max-w-3xl">
+                    <h2 class="text-apple-muted font-bold text-[13px] uppercase tracking-[0.4em] mb-4 animate-in fade-in slide-in-from-top-2"
+                        x-text="t('heroTitle')">NEXT TARGET</h2>
+                    <h1 class="text-[120px] font-extrabold text-white tracking-tighter leading-none drop-shadow-2xl animate-in zoom-in-95 duration-700"
+                        x-text="padDeviceName(config.prefix, config.start_num)"></h1>
 
-                    <!-- Download Trigger -->
-                    <div x-show="downloadUrl" x-transition class="mt-12">
-                        <a :href="downloadUrl" target="_blank"
-                            class="group inline-flex items-center space-x-3 bg-apple-green/10 hover:bg-apple-green/20 border border-apple-green/30 px-6 py-3 rounded-full transition-all">
-                            <svg class="w-5 h-5 text-apple-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                            </svg>
-                            <span class="text-[13px] font-bold text-white" x-text="t('downloadZip')">Download Workspace
-                                (.ZIP)</span>
-                        </a>
+                    <!-- Dynamic Parameter Badge Board -->
+                    <div
+                        class="flex items-center justify-center space-x-3 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div class="px-4 py-2 bg-apple-blue/10 border border-apple-blue/20 rounded-2xl">
+                            <span class="block text-[10px] text-apple-blue font-bold uppercase tracking-widest mb-0.5"
+                                x-text="t('security')">Mode</span>
+                            <div class="flex items-baseline space-x-1">
+                                <span class="text-white font-bold text-sm"
+                                    x-text="config.mode === '1' ? t('dynamicMode') : t('staticMode')"></span>
+                                <template x-if="config.mode === '2'">
+                                    <span class="text-apple-blue/70 text-[10px] font-bold"
+                                        x-text="'(' + config.key_count + ')'"></span>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
+                            <span class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5"
+                                x-text="t('baseInterval')">Interval</span>
+                            <span class="text-white font-bold text-sm"
+                                x-text="(parseInt(config.base_interval) + (parseInt(config.start_num) * parseInt(config.interval_step))) + ' ms'"></span>
+                        </div>
+                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
+                            <span class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5"
+                                x-text="t('hardware')">Debugger</span>
+                            <span class="text-white font-bold text-sm"
+                                x-text="config.debugger === '1' ? 'J-Link' : 'ST-Link'"></span>
+                        </div>
+                        <!-- New: Stack & DC/DC Badges -->
+                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
+                            <span
+                                class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5">Stack</span>
+                            <span class="font-bold text-sm"
+                                :class="config.flash_sd ? 'text-apple-green' : 'text-apple-muted'"
+                                x-text="config.flash_sd ? 'S130' : 'OFF'"></span>
+                        </div>
+                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
+                            <span
+                                class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5">DC/DC</span>
+                            <span class="font-bold text-sm"
+                                :class="config.dcdc ? 'text-apple-green' : 'text-apple-muted'"
+                                x-text="config.dcdc ? 'ON' : 'OFF'"></span>
+                        </div>
+                    </div>
+
+                    <p class="text-[14px] text-apple-muted/80 font-medium mt-6 leading-relaxed"
+                        x-text="t('heroSubtitle', {ms: (parseInt(config.base_interval) + (parseInt(config.start_num) * parseInt(config.interval_step))) })">
+                    </p>
+
+                    <!-- Download area -->
+                    <div class="mt-10 h-16">
+                        <template x-if="downloadUrl">
+                            <a :href="downloadUrl" target="_blank"
+                                class="inline-flex items-center space-x-3 bg-apple-green/10 hover:bg-apple-green/20 border border-apple-green/30 px-6 py-3 rounded-full transition-all animate-in zoom-in slide-in-from-bottom-2">
+                                <svg class="w-5 h-5 text-apple-green" fill="none" stroke="currentColor"
+                                    viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                                </svg>
+                                <span class="text-[13px] font-bold text-white uppercase tracking-wide"
+                                    x-text="t('downloadZip')">Download Bundle (.ZIP)</span>
+                            </a>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -311,7 +361,8 @@
                 <div class="h-8 px-5 flex items-center justify-between bg-white/[0.02] border-b border-white/5">
                     <span class="text-[10px] font-bold text-apple-muted uppercase tracking-widest"
                         x-text="t('consoleTitle')">System Diagnostics Console</span>
-                    <button @click="logs = []" class="text-[9px] font-bold text-apple-muted hover:text-white uppercase"
+                    <button @click="clearLogs()"
+                        class="text-[9px] font-bold text-apple-muted hover:text-white uppercase"
                         x-text="t('clear')">Wipe</button>
                 </div>
                 <div class="flex-1 overflow-y-auto p-4 px-6 font-mono text-[11px] space-y-1.5 scroll-smooth"
@@ -339,7 +390,7 @@
                             dynamicDesc: 'Seeds generated infinitely in firmware. Keys rotate every 15 minutes. Highly secure.',
                             staticDesc: 'Cycles through a fixed set of {n} keys. Rotates every 15 minutes. Predictable tracking.',
                             timing: 'Timing Settings', baseInterval: 'Interval (ms)', intervalStep: 'Step increment (ms)', hardware: 'Debugger', interface: 'Hardware Interface', flashSd: 'Flash S130 Stack',
-                            enableDcdc: 'Enable DC/DC', startFlash: 'START FLASHING', processing: 'FLASHING...', heroTitle: 'CURRENT TARGET', heroSubtitle: 'Set at {ms}ms interval. Optimized for tracking precision.',
+                            enableDcdc: 'Enable DC/DC', startFlash: 'START FLASHING', processing: 'FLASHING...', heroTitle: 'NEXT TARGET DEVICE', heroSubtitle: 'Broadcast set at {ms}ms. High precision tracking.',
                             downloadZip: 'Download Package (.ZIP)', consoleTitle: 'Diagnostic Log', clear: 'Wipe', status_ready: 'Ready', status_busy: 'Active', status_success: 'Done', status_error: 'Error'
                         },
                         zh: {
@@ -348,7 +399,7 @@
                             dynamicDesc: '固件根据随机种子无限生成密钥。每 15 分钟更换一次，安全性极高。',
                             staticDesc: '在固定的 {n} 个密钥集合中循环切换。每 15 分钟更换一次，可控性更强。',
                             timing: '时序设置', baseInterval: '广播间隔 (ms)', intervalStep: '间隔增量 (ms)', hardware: '调试器', interface: '接口类型', flashSd: '安装协议栈 (S130)',
-                            enableDcdc: '启用内部 DC/DC', startFlash: '开始执行刷写', processing: '正在刷写...', heroTitle: '当前工作设备', heroSubtitle: '广播间隔设定：{ms} 毫秒。已针对查找精度优化。',
+                            enableDcdc: '启用内部 DC/DC', startFlash: '开始执行刷写', processing: '正在刷写...', heroTitle: '待刷写目标设备', heroSubtitle: '广播间隔设定：{ms} 毫秒。已针对查找精度优化。',
                             downloadZip: '下载密钥包 (.ZIP)', consoleTitle: '诊断日志', clear: '清除', status_ready: '就绪', status_busy: '执行中', status_success: '完成', status_error: '失败'
                         }
                     },
@@ -370,6 +421,7 @@
                         return 'text-white/50';
                     },
                     async startFlash() {
+                        this.lastNotification = null; // Clear previous success tag
                         this.isFlashing = true; this.status = "Busy"; this.downloadUrl = null;
                         try {
                             const res = await fetch('/api/flash', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.config) });
@@ -387,7 +439,7 @@
                                 if (!data.is_flashing && this.isFlashing && data.status.startsWith('SUCCESS:')) {
                                     this.lastNotification = data.status;
                                     this.config.start_num = parseInt(this.config.start_num) + 1;
-                                    setTimeout(() => { this.lastNotification = null; }, 5000);
+                                    // REMOVED: Auto-hide timer to keep status visible
                                 }
 
                                 this.isFlashing = data.is_flashing;
@@ -397,7 +449,13 @@
                                 }
                             }
                             if (data.download_file && !this.downloadUrl) this.downloadUrl = "/api/download/" + data.download_file;
-                        } catch (e) { }
+                        } catch (e) { console.error("Log fetch failed", e); }
+                    },
+                    async clearLogs() {
+                        try {
+                            await fetch('/api/logs/clear', { method: 'POST' });
+                            this.logs = [];
+                        } catch (e) { console.error("Clear failed", e); }
                     },
                     addLog(msg, cls) {
                         this.logs.push({ time: new Date().toLocaleTimeString('en-US', { hour12: false, minute: '2-digit', second: '2-digit' }), msg: msg, class: cls });
