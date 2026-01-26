@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==============================================================================
-# Unified nRF5x Flash Tool
+# nRF5 AirTag Flash Tool
 # Supports: nRF51822, nRF52832, nRF52810
 # Features: Dynamic Seed Generation, Binary Patching, Key Management, Auto-Log
 # Updates: Uses JLinkExe directly for better stability on macOS
@@ -20,7 +20,7 @@ log_flash_record() {
     
     if [ ! -f "$LOG_FILE" ]; then
         echo "========================================" >> "$LOG_FILE"
-        echo "Unified nRF5x Flash Log" >> "$LOG_FILE"
+        echo "nRF5 AirTag Flash Log" >> "$LOG_FILE"
         echo "Created: $timestamp" >> "$LOG_FILE"
         echo "========================================" >> "$LOG_FILE"
         echo "" >> "$LOG_FILE"
@@ -39,7 +39,7 @@ log_flash_record() {
 
 clear
 echo "========================================"
-echo "   Unified nRF5x Flash Tool (Direct J-Link)"
+echo "   nRF5 AirTag Flash Tool (Direct J-Link)"
 echo "========================================"
 
 # --- 1. Select Chip ---
