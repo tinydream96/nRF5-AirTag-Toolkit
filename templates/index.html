@@ -203,13 +203,13 @@
                         <div class="space-y-1">
                             <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
                                 x-text="t('baseInterval')">Interval (ms)</label>
-                            <input x-model="config.base_interval" type="number" step="10"
+                            <input x-model="config.base_interval" type="number" step="10" @wheel.prevent
                                 class="apple-input w-full h-10 text-base font-semibold text-white focus:text-apple-blue transition-colors">
                         </div>
                         <div class="space-y-1">
                             <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
                                 x-text="t('intervalStep')">Step (ms)</label>
-                            <input x-model="config.interval_step" type="number" step="1"
+                            <input x-model="config.interval_step" type="number" step="1" @wheel.prevent
                                 class="apple-input w-full h-10 text-base font-semibold text-white focus:text-apple-blue transition-colors">
                         </div>
                     </div>

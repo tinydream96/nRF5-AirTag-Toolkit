@@ -301,15 +301,17 @@ while true; do
         # S130/S132 requires MASS ERASE or SECTOR ERASE depending on state.
         # Simple approach: If SoftDevice needed, erase chip first.
         if [ "$NEED_SD" = true ]; then
-             if nrfjprog -f $CHIP_FAMILY --program "$PROJECT_ROOT/$SOFTDEVICE_HEX" --sectorerase >/dev/null 2>&1; then
+             echo "   -> Performing Mass Erase & Stack Install..."
+             if nrfjprog -f $CHIP_FAMILY --program "$PROJECT_ROOT/$SOFTDEVICE_HEX" --chiperase >/dev/null 2>&1; then
                  :
              else
-                 # If sector erase fails, try mass erase recover
+                 # If chip erase fails, try recover then erase
                  nrfjprog -f $CHIP_FAMILY --recover >/dev/null 2>&1
                  nrfjprog -f $CHIP_FAMILY --program "$PROJECT_ROOT/$SOFTDEVICE_HEX" --chiperase >/dev/null 2>&1
              fi
         fi
         
+        echo "   -> Flashing Firmware App..."
         if nrfjprog -f $CHIP_FAMILY --program "$PATCH_HEX" --sectorerase --verify >/dev/null 2>&1; then
              nrfjprog -f $CHIP_FAMILY --reset >/dev/null 2>&1
              NRFJPROG_SUCCESS=true

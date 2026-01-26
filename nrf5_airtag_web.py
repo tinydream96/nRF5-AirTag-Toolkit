@@ -277,8 +277,10 @@ def flash_task(config):
             try:
                 log("Attempting with nrfjprog...", "info")
                 if config.get('flash_sd', False):
-                    run_command(["nrfjprog", "-f", CHIP_CFG['family'], "--program", os.path.join(PROJECT_ROOT, CHIP_CFG['sd_hex']), "--sectorerase"])
+                    log(" Performing Mass Erase & Stack Install...", "warning")
+                    run_command(["nrfjprog", "-f", CHIP_CFG['family'], "--program", os.path.join(PROJECT_ROOT, CHIP_CFG['sd_hex']), "--chiperase"])
                 
+                log(" Flashing Firmware App...", "info")
                 s, o = run_command(["nrfjprog", "-f", CHIP_CFG['family'], "--program", patch_hex, "--sectorerase", "--verify"])
                 if s:
                     run_command(["nrfjprog", "-f", CHIP_CFG['family'], "--reset"])
@@ -311,7 +313,8 @@ def flash_task(config):
                     f.write("h\n")
                     
                     if config.get('flash_sd', False):
-                        log("Flashing SoftDevice (JLink)...", "info")
+                        log("Performing Mass Erase (JLink)...", "warning")
+                        log("Flashing SoftDevice...", "info")
                         sd_full_path = os.path.join(PROJECT_ROOT, CHIP_CFG['sd_hex'])
                         
                         if CHIP_CFG['family'] == 'nrf52':
