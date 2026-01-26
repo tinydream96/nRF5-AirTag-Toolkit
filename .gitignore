@@ -35,3 +35,6 @@ firmware/
 
 # SDK (Excluded to reduce repo size. Users should use setup_sdk.sh)
 nrf-sdk/
+
+.agent/
+旧刷机脚本/

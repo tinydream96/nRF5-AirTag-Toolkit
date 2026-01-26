@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>nRF5 AirTag Toolkit Studio</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+                    },
+                    colors: {
+                        apple: {
+                            black: '#000000',
+                            gray: '#1c1c1e',
+                            silver: '#f5f5f7',
+                            muted: '#86868b',
+                            blue: '#0071e3',
+                            green: '#34c759',
+                            ring: 'rgba(0, 113, 227, 0.3)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #3a3a3c 0%, #1c1c1e 100%);
+            color: #f5f5f7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .glass {
+            background: rgba(28, 28, 30, 0.4);
+            backdrop-filter: blur(40px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .apple-switch {
+            width: 40px;
+            height: 22px;
+            background: #3a3a3c;
+            border-radius: 11px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .apple-switch.active {
+            background: #34c759;
+        }
+
+        .apple-switch-knob {
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .apple-switch.active .apple-switch-knob {
+            transform: translateX(18px);
+        }
+
+        .apple-input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 10px 14px;
+            transition: all 0.2s;
+        }
+
+        .apple-input:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            outline: none;
+        }
+
+        ::-webkit-scrollbar {
+            width: 0px;
+        }
+    </style>
+</head>
+
+<body class="h-screen w-screen flex items-center justify-center p-0 md:p-6" x-data="appData()" x-init="init()" x-cloak>
+
+    <main
+        class="w-full max-w-[1280px] h-full md:h-[800px] glass md:rounded-3xl border-none md:border border-white/10 flex overflow-hidden shadow-2xl relative z-10">
+
+        <!-- LEFT PANEL: Studio Config -->
+        <aside class="w-[420px] bg-white/[0.02] border-r border-white/5 flex flex-col shrink-0">
+            <!-- Logo area -->
+            <div class="h-16 px-8 flex items-center border-b border-white/5">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-8 h-8 bg-apple-blue rounded-lg flex items-center justify-center shadow-lg shadow-apple-blue/20">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                    </div>
+                    <span class="text-lg font-bold tracking-tight text-white/90">nRF5 AirTag <span
+                            class="text-apple-muted font-medium text-base ml-1"
+                            x-text="t('toolkit')">Toolkit</span></span>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="flex-1 overflow-y-auto p-6 space-y-4 custom-scroll">
+                <!-- Device Group -->
+                <section class="space-y-2">
+                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1"
+                        x-text="t('deviceIdentity')">General</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
+                                x-text="t('prefix')">ID Prefix</label>
+                            <input x-model="config.prefix"
+                                @input="$el.value = $el.value.toUpperCase().slice(0,5); config.prefix = $el.value"
+                                type="text"
+                                class="apple-input w-full h-10 text-base font-semibold text-white tracking-widest uppercase">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
+                                x-text="t('index')">Start Number</label>
+                            <input x-model="config.start_num" type="number"
+                                class="apple-input w-full h-10 text-base font-semibold text-white">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Mode Group -->
+                <section class="space-y-3">
+                    <div class="flex items-center justify-between px-1">
+                        <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em]"
+                            x-text="t('security')">Key Mode</h3>
+                        <div x-show="config.mode === '2'"
+                            class="flex items-center space-x-2 animate-in fade-in slide-in-from-right-2">
+                            <input x-model="config.key_count" type="number" min="1" max="200"
+                                class="apple-input w-16 h-7 text-xs font-bold text-center p-0">
+                        </div>
+                    </div>
+                    <div class="flex p-1 bg-apple-black/50 rounded-xl border border-white/5">
+                        <button @click="config.mode = '1'"
+                            :class="config.mode === '1' ? 'bg-white text-black text-shadow-none shadow-lg' : 'text-apple-muted'"
+                            class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all px-2"
+                            x-text="t('dynamicMode')">Dynamic</button>
+                        <button @click="config.mode = '2'"
+                            :class="config.mode === '2' ? 'bg-white text-black text-shadow-none shadow-lg' : 'text-apple-muted'"
+                            class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all px-2"
+                            x-text="t('staticMode')">Static</button>
+                    </div>
+                    <div class="px-1 min-h-[32px]">
+                        <p class="text-[11px] leading-relaxed text-apple-muted/80"
+                            x-text="config.mode === '1' ? t('dynamicDesc') : t('staticDesc', {n: config.key_count})">
+                        </p>
+                    </div>
+                </section>
+
+                <!-- Timing Group -->
+                <section class="space-y-2">
+                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1"
+                        x-text="t('timing')">Timing Settings</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
+                                x-text="t('baseInterval')">Interval (ms)</label>
+                            <input x-model="config.base_interval" type="number" step="10"
+                                class="apple-input w-full h-10 text-base font-semibold text-white focus:text-apple-blue transition-colors">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
+                                x-text="t('intervalStep')">Step (ms)</label>
+                            <input x-model="config.interval_step" type="number" step="1"
+                                class="apple-input w-full h-10 text-base font-semibold text-white focus:text-apple-blue transition-colors">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Hardware Group -->
+                <section class="space-y-3">
+                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1"
+                        x-text="t('hardware')">Hardware Interface</h3>
+                    <div class="space-y-2.5">
+                        <div>
+                            <select x-model="config.debugger"
+                                class="apple-input w-full h-11 text-base font-medium pr-10 appearance-none bg-apple-black/40"
+                                style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2386868b%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22%3E%3C/path%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px;">
+                                <option value="1">Segger J-Link</option>
+                                <option value="2">ST-Link V2/V3</option>
+                            </select>
+                        </div>
+                        <div class="space-y-2 px-1">
+                            <div class="flex items-center justify-between group cursor-pointer"
+                                @click="config.flash_sd = !config.flash_sd">
+                                <span
+                                    class="text-[14px] font-medium text-white/90 group-hover:text-white transition-colors"
+                                    x-text="t('flashSd')">Flash S130 Stack</span>
+                                <div class="apple-switch" :class="config.flash_sd ? 'active' : ''">
+                                    <div class="apple-switch-knob"></div>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between group cursor-pointer"
+                                @click="config.dcdc = !config.dcdc">
+                                <span
+                                    class="text-[14px] font-medium text-white/90 group-hover:text-white transition-colors"
+                                    x-text="t('enableDcdc')">Internal DC/DC</span>
+                                <div class="apple-switch" :class="config.dcdc ? 'active' : ''">
+                                    <div class="apple-switch-knob"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Action Area -->
+            <div class="p-6 border-t border-white/5 bg-white/[0.01]">
+                <button @click="startFlash()" :disabled="isFlashing"
+                    class="w-full h-14 bg-apple-blue hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl text-[15px] font-bold text-white transition-all transform active:scale-[0.98] shadow-2xl shadow-apple-blue/20"
+                    x-text="isFlashing ? t('processing') : t('startFlash')"></button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT: Interaction Area -->
+        <main class="flex-1 flex flex-col relative">
+            <!-- Toast Notification Area -->
+            <div class="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+                <template x-if="lastNotification">
+                    <div
+                        class="bg-green-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span class="text-sm font-bold tracking-wide" x-text="lastNotification"></span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Header -->
+            <div class="w-full h-20 px-10 flex items-center justify-end border-b border-white/5 space-x-6">
+                <!-- Lang -->
+                <div class="flex p-1 bg-white/5 rounded-full border border-white/5">
+                    <button @click="lang = 'en'" :class="lang === 'en' ? 'bg-white text-black' : 'text-apple-muted'"
+                        class="px-3 py-1 rounded-full text-[10px] font-bold transition-all">EN</button>
+                    <button @click="lang = 'zh'" :class="lang === 'zh' ? 'bg-white text-black' : 'text-apple-muted'"
+                        class="px-3 py-1 rounded-full text-[10px] font-bold transition-all">中文</button>
+                </div>
+                <!-- Status -->
+                <div class="flex items-center space-x-3 bg-white/5 px-4 py-2 rounded-full border border-white/5">
+                    <span class="w-1.5 h-1.5 rounded-full"
+                        :class="status === 'Ready' ? 'bg-apple-muted' : (status === 'Success' ? 'bg-apple-green shadow-[0_0_12px_rgba(52,199,89,0.5)]' : 'bg-apple-blue animate-pulse')"></span>
+                    <span class="text-[11px] font-bold uppercase tracking-widest text-apple-muted"
+                        x-text="t('status_'+status.toLowerCase())"></span>
+                </div>
+            </div>
+
+            <!-- Core Visualization -->
+            <div class="flex-1 w-full flex flex-col items-center justify-center space-y-12 relative overflow-hidden">
+                <!-- Ambient Glow -->
+                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
+                    <div class="w-[500px] h-[500px] bg-apple-blue/20 blur-[120px] rounded-full transition-colors duration-1000"
+                        :class="{'bg-apple-green/20': status === 'Success', 'bg-red-500/20': status === 'Error'}"></div>
+                </div>
+
+                <div class="relative z-10 flex flex-col items-center justify-center text-center">
+                    <h3 class="text-sm font-bold text-apple-muted uppercase tracking-[0.4em] mb-4 opacity-50"
+                        x-text="t('heroTitle')">STUDIO SERIES TARGET</h3>
+                    <div class="text-[120px] font-bold tracking-tighter text-white leading-none drop-shadow-2xl"
+                        x-text="padDeviceName(config.prefix, config.start_num)"></div>
+                    <p class="text-apple-muted font-medium mt-6 max-w-sm leading-relaxed text-[15px]"
+                        x-text="t('heroSubtitle', {ms: config.base_interval})"></p>
+
+                    <!-- Download Trigger -->
+                    <div x-show="downloadUrl" x-transition class="mt-12">
+                        <a :href="downloadUrl" target="_blank"
+                            class="group inline-flex items-center space-x-3 bg-apple-green/10 hover:bg-apple-green/20 border border-apple-green/30 px-6 py-3 rounded-full transition-all">
+                            <svg class="w-5 h-5 text-apple-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            <span class="text-[13px] font-bold text-white" x-text="t('downloadZip')">Download Workspace
+                                (.ZIP)</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integrated Studio Console -->
+            <div class="w-[calc(100%-80px)] h-40 mb-10 mx-10 glass rounded-2xl border border-white/5 flex flex-col overflow-hidden shadow-2xl transition-all"
+                :class="isFlashing ? 'opacity-100 translate-y-0' : 'opacity-60 hover:opacity-100'">
+                <div class="h-8 px-5 flex items-center justify-between bg-white/[0.02] border-b border-white/5">
+                    <span class="text-[10px] font-bold text-apple-muted uppercase tracking-widest"
+                        x-text="t('consoleTitle')">System Diagnostics Console</span>
+                    <button @click="logs = []" class="text-[9px] font-bold text-apple-muted hover:text-white uppercase"
+                        x-text="t('clear')">Wipe</button>
+                </div>
+                <div class="flex-1 overflow-y-auto p-4 px-6 font-mono text-[11px] space-y-1.5 scroll-smooth"
+                    id="log-scroll">
+                    <template x-for="log in logs">
+                        <div class="flex space-x-4 opacity-80 hover:opacity-100 transition-opacity"><span
+                                class="text-white/20 select-none w-14 shrink-0" x-text="log.time"></span><span
+                                :class="getLogClass(log.class)" x-text="log.msg"></span></div>
+                    </template>
+                </div>
+            </div>
+            </section>
+        </main>
+
+        <script>
+            function appData() {
+                return {
+                    lang: 'zh',
+                    config: { prefix: 'MSF', start_num: 1, mode: '1', key_count: 200, debugger: '2', gen_offline: true, flash_sd: true, dcdc: false, base_interval: 2000, interval_step: 10 },
+                    status: 'Ready', isFlashing: false, lastNotification: null, logs: [], downloadUrl: null,
+                    i18n: {
+                        en: {
+                            toolkit: 'Toolkit', deviceIdentity: 'General', prefix: 'ID Prefix', index: 'Start Number', security: 'Key Mode', dynamicMode: 'Dynamic Generation', staticMode: 'Fixed Cycle',
+                            keyCount: 'Key Count (Max 200)',
+                            dynamicDesc: 'Seeds generated infinitely in firmware. Keys rotate every 15 minutes. Highly secure.',
+                            staticDesc: 'Cycles through a fixed set of {n} keys. Rotates every 15 minutes. Predictable tracking.',
+                            timing: 'Timing Settings', baseInterval: 'Interval (ms)', intervalStep: 'Step increment (ms)', hardware: 'Debugger', interface: 'Hardware Interface', flashSd: 'Flash S130 Stack',
+                            enableDcdc: 'Enable DC/DC', startFlash: 'START FLASHING', processing: 'FLASHING...', heroTitle: 'CURRENT TARGET', heroSubtitle: 'Set at {ms}ms interval. Optimized for tracking precision.',
+                            downloadZip: 'Download Package (.ZIP)', consoleTitle: 'Diagnostic Log', clear: 'Wipe', status_ready: 'Ready', status_busy: 'Active', status_success: 'Done', status_error: 'Error'
+                        },
+                        zh: {
+                            toolkit: '工具包', deviceIdentity: '基本设置', prefix: '识别前缀', index: '起始编号', security: '密钥模式', dynamicMode: '动态生成', staticMode: '固定循环',
+                            keyCount: '密钥数量 (最大 200)',
+                            dynamicDesc: '固件根据随机种子无限生成密钥。每 15 分钟更换一次，安全性极高。',
+                            staticDesc: '在固定的 {n} 个密钥集合中循环切换。每 15 分钟更换一次，可控性更强。',
+                            timing: '时序设置', baseInterval: '广播间隔 (ms)', intervalStep: '间隔增量 (ms)', hardware: '调试器', interface: '接口类型', flashSd: '安装协议栈 (S130)',
+                            enableDcdc: '启用内部 DC/DC', startFlash: '开始执行刷写', processing: '正在刷写...', heroTitle: '当前工作设备', heroSubtitle: '广播间隔设定：{ms} 毫秒。已针对查找精度优化。',
+                            downloadZip: '下载密钥包 (.ZIP)', consoleTitle: '诊断日志', clear: '清除', status_ready: '就绪', status_busy: '执行中', status_success: '完成', status_error: '失败'
+                        }
+                    },
+                    t(key, params = {}) {
+                        let text = this.i18n[this.lang][key] || key;
+                        for (let p in params) text = text.replace(`{${p}}`, params[p]);
+                        return text;
+                    },
+                    init() { setInterval(() => this.poll(), 800); },
+                    padDeviceName(prefix, num) {
+                        let p = (prefix || 'MSF').toUpperCase(); let padding = Math.max(1, 6 - p.length);
+                        return p + num.toString().padStart(padding, '0');
+                    },
+                    getLogClass(cls) {
+                        if (!cls) return 'text-white/70';
+                        if (cls.includes('red')) return 'text-red-400 font-bold';
+                        if (cls.includes('green')) return 'text-apple-green font-bold';
+                        if (cls.includes('accent')) return 'text-apple-blue font-bold';
+                        return 'text-white/50';
+                    },
+                    async startFlash() {
+                        this.isFlashing = true; this.status = "Busy"; this.downloadUrl = null;
+                        try {
+                            const res = await fetch('/api/flash', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.config) });
+                        } catch (e) { this.isFlashing = false; this.status = "Error"; this.addLog(e.message, "red"); }
+                    },
+                    async poll() {
+                        try {
+                            const res = await fetch('/api/logs'); const data = await res.json();
+                            if (data.logs.length > this.logs.length) {
+                                this.logs = [...this.logs, ...data.logs.slice(this.logs.length)];
+                                this.$nextTick(() => { const el = document.getElementById('log-scroll'); if (el) el.scrollTop = el.scrollHeight; });
+                            }
+                            if (this.isFlashing !== data.is_flashing) {
+                                // Success Detection & Auto-increment
+                                if (!data.is_flashing && this.isFlashing && data.status.startsWith('SUCCESS:')) {
+                                    this.lastNotification = data.status;
+                                    this.config.start_num = parseInt(this.config.start_num) + 1;
+                                    setTimeout(() => { this.lastNotification = null; }, 5000);
+                                }
+
+                                this.isFlashing = data.is_flashing;
+                                if (data.status === "Success" || data.status === "Error") {
+                                    this.status = data.status;
+                                    if (this.status === "Success") this.config.start_num = parseInt(this.config.start_num) + 1;
+                                }
+                            }
+                            if (data.download_file && !this.downloadUrl) this.downloadUrl = "/api/download/" + data.download_file;
+                        } catch (e) { }
+                    },
+                    addLog(msg, cls) {
+                        this.logs.push({ time: new Date().toLocaleTimeString('en-US', { hour12: false, minute: '2-digit', second: '2-digit' }), msg: msg, class: cls });
+                    }
+                }
+            }
+        </script>
+</body>
+
+</html>

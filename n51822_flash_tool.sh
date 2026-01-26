@@ -296,11 +296,11 @@ while true; do
                 echo -e "\033[1;33m⚙️  正在生成密钥 ($DEVICE_NAME)...\033[0m"
                 
                 # Ask for number of keys
-                read -p "请输入要生成的 Key 数量 (建议不超过 200, 默认 50): " N_KEYS
-                N_KEYS=${N_KEYS:-50}
+                read -p "请输入要生成的 Key 数量 (建议不超过 200, 默认 200): " N_KEYS
+                N_KEYS=${N_KEYS:-200}
                 if [[ ! "$N_KEYS" =~ ^[0-9]+$ ]] || [ "$N_KEYS" -gt 200 ]; then
-                    echo "⚠️  无效输入或超出上限 (200)，使用默认值 50."
-                    N_KEYS=50
+                    echo "⚠️  无效输入或超出上限 (200)，使用默认值 200."
+                    N_KEYS=200
                 fi
 
                 TEMP_KEY_DIR="temp_keys_gen"
