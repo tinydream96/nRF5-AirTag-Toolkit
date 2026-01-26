@@ -344,8 +344,11 @@ def flash_task(config):
                 if os.path.exists(jlink_script_path):
                     os.remove(jlink_script_path)
                     
-                if not success: 
-                    raise Exception(f"JLinkExe failed: {output}")
+                # JLinkExe often returns 0 even on failure. We must check output text.
+                # Common failure keywords: "Cannot connect", "failed", "Error"
+                if not success or "Cannot connect to target" in output or "Connection failed" in output or "Error while" in output or "FAILED" in output:
+                     log(f"JLinkExe Output:\n{output}", "error") # Log full output for debug
+                     raise Exception(f"JLinkExe failed: See log for details.")
                 
                 log("SUCCESS (JLinkExe)", "success")
             
