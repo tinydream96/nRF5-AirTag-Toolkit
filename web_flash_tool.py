@@ -269,6 +269,26 @@ def index():
 def download_file(filename):
     return send_from_directory(CONFIG_DIR, filename, as_attachment=True)
 
+def detect_debugger():
+    """Detects if J-Link or ST-Link is connected via USB (macOS logic)."""
+    try:
+        import subprocess
+        # Check USB devices using ioreg
+        cmd = "ioreg -p IOUSB -l"
+        output = subprocess.check_output(cmd, shell=True).decode('utf-8')
+        
+        if "J-Link" in output:
+            return "1" # J-Link
+        if "ST-Link" in output or "STLINK" in output:
+            return "2" # ST-Link
+    except:
+        pass
+    return None
+
+@app.route('/api/detect_debugger')
+def api_detect_debugger():
+    return jsonify({"debugger": detect_debugger()})
+
 @app.route('/api/logs/clear', methods=['POST'])
 def clear_logs_api():
     STATE["logs"] = []
