@@ -37,4 +37,4 @@ firmware/
 nrf-sdk/
 
 .agent/
-旧刷机脚本/
+private/

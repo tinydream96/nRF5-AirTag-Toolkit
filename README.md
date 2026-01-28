@@ -2,144 +2,121 @@
 
 > **[🇺🇸 English](./README.md)** | [🇨🇳 中文](./README_zh.md)
 
-> **Build Your Own AirTag —— The Ultimate Open Source Toolkit based on Apple Find My Network**
->
-> *Let every nRF5 chip be guarded by iPhones worldwide.*
+<p align="center">
+  <br><b>Give every nRF5 chip the soul of an AirTag.</b><br>
+  The most powerful, elegant, and only "Zero-Configuration" firmware deployment toolkit for the Apple Find My network.
+</p>
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
-![Hardware](https://img.shields.io/badge/hardware-nRF52810%20|%20nRF52832-blue)
-![Debugger](https://img.shields.io/badge/debugger-JLink%20|%20STLink-orange)
+# 💎 Why is this the Industry Standard?
 
----
+If you're tired of clunky command lines, messy key management, and flaky location tracks, **nRF5-AirTag-Toolkit** is the ultimate solution you've been waiting for.
 
-## 📖 Introduction
+### 1. ♾️ World-Leading: Infinite Dynamic Keys
 
-**nRF5-AirTag-Toolkit** is the most complete and "worry-free" third-party Find My network firmware deployment solution available.
+<p align="center">
+  <video src="docs/images/web_studio_demo.mov" width="800" controls muted autoplay loop style="border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
+    Your browser does not support HTML5 video.
+  </video>
+</p>
 
-It was born to solve the pain points of "difficult flashing, annoying configuration, and messy keys" in the open source community. Whether you have a **J-Link** or a cheap **ST-Link**, whether you are a senior embedded engineer or a complete beginner with no coding experience, this toolkit allows you to light up your device in 5 minutes.
+Conventional solutions recycle a fixed set of ~200 keys, which can be flagged as "zombie devices" by Apple, resulting in sparse location updates.
 
-### ✨ Core Innovations
+* **The Innovation:** We pioneered **Dynamic Seed** technology—the firmware only stores a single random seed.
+* **The Effect:** Keys are generated infinitely and never repeat, matching the privacy standards of original AirTags.
+* **The Result:** Smooth, continuous tracking paths with zero data loss.
 
-#### 1. ♾️ Infinite Dynamic Keys —— **The Highlight**
+### 2. 🖥️ Apple-Grade Experience: Web Studio 2.0
 
-Traditional open source firmware only supports "Static Mode" (fixed keys), which can only store about 200 keys and cycle through them, making them easy to fingerprint and poor in privacy. **Even worse, once Apple devices detect key reuse, they may refuse to report location, resulting in sparse tracking points. This project completely solves this pain point.**
+Say goodbye to the terminal. We've built a Web Control Center with extreme industrial aesthetics:
 
-**This project pioneers "Dynamic Seed" technology:**
+* **Glassmorphism UI:** Perfectly aligned with macOS design principles.
+* **Intelligent Sensing:** Plug and play! Hardware types (J-Link/ST-Link) and chip models (51822/52832/5281x) are automatically detected.
+* **Dynamic Calibration:** Even if you select the wrong model, the system auto-corrects it during the flashing process.
 
-* **Principle**: The device only stores a random seed (Seed), and calculates future keys in real-time via SHA256 algorithm.
-* **Effect**: **Keys never repeat, generated infinitely.**
-* **Privacy**: Extremely high anti-tracking capability, reaching AirTag native privacy standards.
+### 3. 🐣 Zero Friction: True "Nanny-State" Automation
 
-👉 **[Deep Dive: Infinite Dynamic Keys Technology](docs/16-Dynamic_Keys_技术详解.md)**
+Whether you're an expert or a total beginner, it's just three steps:
 
-#### 2. ⚡️ Zero-Friction Flashing
-
-* **[NEW] All Series Support**: One script unifies support for nRF51822 / nRF52832 / nRF52810.
-* **[NEW] Smart Fallback**: J-Link mode tries standard method first, fails over to Direct Mode automatically, perfect for macOS.
-* Automatically handles SoftDevice stack merging and firmware patching.
-
-#### 3. 🖥️ Web Studio (Recommended)
-
-* **Peak Aesthetics**: Glassmorphism design, ultimate industrial beauty and interaction experience.
-* **Fully Automatic**: Supports hardware auto-detection (plug and play), auto-increment ID, one-click key package download.
-* **Real-time Monitoring**: Flashing logs returned in real-time, WYSIWYG.
-
-<p align="center"><img src="docs/images/web_studio_ui.png" width="800" alt="Web Studio UI"></p>
-
-#### 4. 🛡️ Anti-Brick Guard
-
-* Built-in chip unlock mechanism, automatically detects `Device is secured` and performs Mass Erase unlock.
-* This means you can buy **salvaged chips** or **locked production modules**, and the tool automatically "washes" them into brand new dev boards.
+1. **Launch the tool**
+2. **Click "Start Flashing"**
+3. **Light up your AirTag!**
+All complex SDK configurations, patch merging, and hex conversions are handled by your automated background manager.
 
 ---
 
-## 🚀 Quick Start
+# ✨ Core Features
 
-We have prepared different entry points for users with different backgrounds:
+| Feature | Details | Advantage |
+| :--- | :--- | :--- |
+| **Smart Decryption** | Auto-detects `Device Security` | **The ultimate unbricker**—instantly "cleanse" locked or production chips. |
+| **All-Series Support** | Native support for nRF51 / nRF52 | One tool for 99% of common modules on the market. |
+| **Bilingual Logs** | Real-time English/Chinese diagnostics | Transparent process—no more guesswork or "black box" flashing. |
+| **Instant Delivery** | One-click key package download | Flash and go—immediately compatible with OpenHaystack/FindMy. |
 
-### Option A: Web Studio (Recommended)
+---
 
-The most intuitive visual operation, supporting all series.
+# 🚀 5-Minute Setup
+
+> [!TIP]
+> **Prerequisites:** Ensure your drivers are installed and your device is connected via a debugger.
+
+### Step 1: Fire up the Engine
+
+Run a single command to start the Web Studio:
 
 ```bash
 python3 nrf5_airtag_web.py
 ```
 
-Open in browser: <http://127.0.0.1:5001>
+### Step 2: Enter the Control Center
 
-### Option B: Terminal Script
+Navigate to: `http://127.0.0.1:5001`
 
-Suitable for production lines or pure command line environments.
+### Step 3: Witness the Magic
 
-```bash
-./nrf5_airtag_flash.sh
-```
-
-### 📘 Documentation Navigation
-
-* **Beginner**:
-  * [nRF51822 Unified Flashing Guide](docs/14-nRF51822_统一刷写工具指南.md) (Core Doc)
-  * [nRF52832 Flashing Guide](docs/10-nRF52832刷机保姆级教程.md)
-* **Advanced**:
-  * [Common Board Pinouts](docs/17-常见开发板接线图集.md) (**New!** Includes wiring diagrams)
-  * [J-Link Chip Unlock Guide](docs/14-nRF51822_统一刷写工具指南.md#4-常见问题-faq)
-  * [Full Documentation List](docs/README-文档导航.md)
+Click the blue **"START FLASHING"** button.
+Watch the elegant progress bar—system detection, firmware patching, and key injection happen in seconds.
 
 ---
 
-## 🗺️ Roadmap
+# 📘 Documentation & Support
 
-We are building a grander future to make Find My development as simple as installing an App.
+> [!IMPORTANT]
+> Although this tool is extremely simplified, we still provide a comprehensive knowledge base.
 
-* [x] **🖥️ Cross-Platform GUI Client (Web Studio)**
-  * **New Launch**: Web-based Studio console, supports macOS/Linux.
-  * **Automation**: Just click, and firmware patching, compilation, and flashing are done automatically.
-
-* [ ] **🪟 Windows Native Support**
-  * Current scripts are based on Bash (macOS/Linux).
-  * Future port to PowerShell, allowing Windows users to run natively without WSL.
-
-* [x] **♾️ All nRF Series Support**
-  * [x] nRF52810 (Supported)
-  * [x] nRF52832 (Supported)
-  * [x] nRF51822 (Supported)
-  * [ ] **nRF52840**: Support USB Dongle form factor.
+* **[Beginner] [nRF51822 Unified Flashing Guide](docs/14-nRF51822_统一刷写工具指南.md)**
+* **[Advanced] [Deep Dive: Infinite Dynamic Keys](docs/16-Dynamic_Keys_技术详解.md)**
+* **[Visuals] [Common Board Wiring Diagrams](docs/17-常见开发板接线图集.md)**
 
 ---
 
-## 📂 Directory Structure
+# 📂 Architecture at a Glance
 
 ```text
 .
-├── config/                 # [Privacy] Stores generated exclusive keys and logs (Git ignored)
-├── docs/                   # 📚 The Million Dollar Library
-├── heystack-nrf5x/         # Core firmware source (Based on OpenHaystack)
-├── nrf5_airtag_flash.sh    # ⚡️ Unified command line flashing tool
-├── nrf5_airtag_web.py      # 🖥️ Web Studio Backend
-├── scripts/                # Helper scripts
-└── README.md
+├── nrf5_airtag_web.py      # 🖥️ Core: The automated brain of Web Studio
+├── templates/              # 🎨 Soul: The high-aesthetic UI layer
+├── scripts/                # 🛠️ Skeleton: Efficient low-level driver logic
+├── heystack-nrf5x/         # 🧠 Gene: Deeply optimized firmware source
+└── docs/                   # 📚 Wealth: Million-dollar practical documentation
 ```
 
 ---
 
-## 🤝 Acknowledgements
+# 🤝 Acknowledgements & Disclaimer
 
-The core firmware of this project is based on secondary development of excellent open source projects, special thanks to:
+Built on the shoulders of giants. Special thanks to [OpenHaystack](https://github.com/seemoo-lab/openhaystack) for their pioneering work.
 
-* **[heystack-nrf5x](https://github.com/pix/heystack-nrf5x)**: The firmware core of this project, nRF5 adaptation based on acalatrava's work.
-* **[OpenHaystack](https://github.com/seemoo-lab/openhaystack)**: Pioneer of reverse engineering Find My network, none of this would be possible without them.
+**⚠️ Disclaimer:**
 
----
-
-## ⚠️ Disclaimer
-
-This project is for education and research purposes only.
-
-* Do not use this project to illegally track others.
+* This project is for educational and research purposes only.
+* Do not use this project for illegal tracking.
 * AirTag and Find My are trademarks of Apple Inc.
-* This project is not affiliated with Apple Inc. in any way.
+* This project is not affiliated with Apple Inc.
 
 ---
 
-*Made with ❤️ by Open Source Community*
+<p align="center">
+  <i>Define your digital territory with code.</i><br>
+  <b>Made with ❤️ by the Global Open Source Community</b>
+</p>

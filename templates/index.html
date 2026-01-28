@@ -4,509 +4,2586 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>nRF5 AirTag Toolkit Studio</title>
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Alpine -->
+    <title>nRF5 AirTag Toolkit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                    },
-                    colors: {
-                        apple: {
-                            black: '#000000',
-                            gray: '#1c1c1e',
-                            silver: '#f5f5f7',
-                            muted: '#86868b',
-                            blue: '#0071e3',
-                            green: '#34c759',
-                            ring: 'rgba(0, 113, 227, 0.3)'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
     <style>
+        :root {
+            /* Apple Color Palette */
+            --bg-primary: #000000;
+            --bg-secondary: #1c1c1e;
+            --bg-tertiary: #2c2c2e;
+            --bg-elevated: rgba(44, 44, 46, 0.8);
+
+            --text-primary: #f5f5f7;
+            --text-secondary: #d1d1d6;
+            --text-tertiary: #b1b1b6;
+
+            --accent-blue: #0a84ff;
+            --accent-green: #30d158;
+            --accent-red: #ff453a;
+            --accent-orange: #ff9f0a;
+            --accent-purple: #bf5af2;
+
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-focused: rgba(255, 255, 255, 0.18);
+
+            /* Spacing */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+
+            /* Typography */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: var(--font-family);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
+        }
+
         [x-cloak] {
             display: none !important;
         }
 
-        body {
-            background: radial-gradient(circle at center, #3a3a3c 0%, #1c1c1e 100%);
-            color: #f5f5f7;
-            -webkit-font-smoothing: antialiased;
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .glass {
-            background: rgba(28, 28, 30, 0.4);
-            backdrop-filter: blur(40px) saturate(150%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        ::-webkit-scrollbar-track {
+            background: transparent;
         }
 
-        .apple-switch {
-            width: 40px;
-            height: 22px;
-            background: #3a3a3c;
-            border-radius: 11px;
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* Layout */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .app-header {
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            border-bottom: 1px solid var(--border-color);
+            backdrop-filter: blur(20px);
+            background: rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        .app-main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 340px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
             position: relative;
+        }
+
+        .hero-section {
+            flex: 0 0 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .console-section {
+            height: 240px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-shrink: 0;
+        }
+
+        /* History Panel */
+        .history-panel {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        /* Section Headers */
+        .section-header {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+            padding: 0 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .section-header svg {
+            opacity: 0.6;
+        }
+
+        /* Form Groups */
+        .form-group {
+            margin-bottom: 16px;
+            padding-bottom: 0px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        /* Input Styles */
+        .input-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .input-field {
+            width: 100%;
+            height: 40px;
+            padding: 0 12px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 15px;
+            font-weight: 500;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--border-focused);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        /* Segmented Control */
+        .segmented-control {
+            display: flex;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: var(--radius-md);
+            padding: 3px;
+            position: relative;
+        }
+
+        .segment-btn {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
             cursor: pointer;
-            transition: background 0.2s;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s ease;
+            position: relative;
+            z-index: 1;
         }
 
-        .apple-switch.active {
-            background: #34c759;
+        .segment-btn.active {
+            color: var(--text-primary);
+            background: rgba(255, 255, 255, 0.12);
         }
 
-        .apple-switch-knob {
-            width: 18px;
-            height: 18px;
+        /* Chip Selector */
+        .chip-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .chip-btn {
+            padding: 10px 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .chip-btn.active {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+            border-color: transparent;
+        }
+
+        /* Toggle Switch */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            cursor: pointer;
+        }
+
+        .toggle-row:hover .toggle-label {
+            color: var(--text-primary);
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: color 0.15s ease;
+        }
+
+        .toggle-switch {
+            width: 51px;
+            height: 31px;
+            background: var(--bg-tertiary);
+            border-radius: 31px;
+            position: relative;
+            transition: background 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch.on {
+            background: var(--accent-green);
+        }
+
+        .toggle-knob {
+            width: 27px;
+            height: 27px;
             background: white;
             border-radius: 50%;
             position: absolute;
             top: 2px;
             left: 2px;
-            transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+            transition: transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
-        .apple-switch.active .apple-switch-knob {
-            transform: translateX(18px);
+        .toggle-switch.on .toggle-knob {
+            transform: translateX(20px);
         }
 
-        .apple-input {
-            background: rgba(255, 255, 255, 0.05);
+        /* Primary Button */
+        .btn-primary {
+            width: 100%;
+            height: 50px;
+            background: var(--accent-blue);
+            border: none;
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-primary.danger {
+            background: var(--accent-red);
+        }
+
+        /* Logo */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--accent-blue);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon svg {
+            width: 16px;
+            height: 16px;
+            color: white;
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .logo-text span {
+            color: var(--text-tertiary);
+            font-weight: 500;
+        }
+
+        /* Header Controls */
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .lang-switcher {
+            display: flex;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+            padding: 2px;
+        }
+
+        .lang-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 11px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 18px;
+            transition: all 0.2s ease;
+        }
+
+        .lang-btn.active {
+            background: white;
+            color: black;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 20px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--text-tertiary);
+        }
+
+        .status-dot.ready {
+            background: var(--text-tertiary);
+        }
+
+        .status-dot.busy {
+            background: var(--accent-blue);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.success {
+            background: var(--accent-green);
+        }
+
+        .status-dot.error {
+            background: var(--accent-red);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        .status-text {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Hero - glow effect disabled */
+        .hero-glow {
+            display: none;
+        }
+
+        .hero-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
+        }
+
+        .hero-device {
+            font-size: 80px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -3px;
+            line-height: 1;
+            margin-bottom: 24px;
+        }
+
+        .hero-badges {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hero-badge {
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            text-align: center;
+        }
+
+        .badge-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .badge-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .badge-value.green {
+            color: var(--accent-green);
+        }
+
+        .badge-value.muted {
+            color: var(--text-tertiary);
+        }
+
+        /* Step Progress Indicator */
+        .step-progress {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin: 32px auto;
+            padding: 20px 24px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            max-width: 700px;
+        }
+
+        .step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 72px;
+        }
+
+        .step-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.06);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            transition: all 0.3s ease;
+        }
+
+        .step-item.active .step-icon {
+            background: rgba(10, 132, 255, 0.15);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .step-item.completed .step-icon {
+            background: rgba(48, 209, 88, 0.15);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .step-item.error .step-icon {
+            background: rgba(255, 69, 58, 0.15);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .step-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            white-space: nowrap;
+        }
+
+        .step-item.active .step-label {
+            color: var(--accent-blue);
+        }
+
+        .step-item.completed .step-label {
+            color: var(--accent-green);
+        }
+
+        .step-item.error .step-label {
+            color: var(--accent-red);
+        }
+
+        .step-sublabel {
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            opacity: 0.8;
+            margin-top: -4px;
+            white-space: nowrap;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: var(--border-color);
+            min-width: 24px;
+            max-width: 60px;
+            margin: 0 4px;
+            margin-bottom: 24px;
+            transition: background 0.3s ease;
+        }
+
+        .step-line.active {
+            background: var(--accent-green);
+        }
+
+        /* Status Box */
+        .status-box {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin: 24px auto;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            max-width: 500px;
+            text-align: left;
+        }
+
+        .status-box.info {
+            border-color: rgba(10, 132, 255, 0.3);
+            background: rgba(10, 132, 255, 0.08);
+        }
+
+        .status-box.info .status-box-icon {
+            color: var(--accent-blue);
+        }
+
+        .status-box.waiting {
+            border-color: rgba(255, 159, 10, 0.3);
+            background: rgba(255, 159, 10, 0.08);
+        }
+
+        .status-box.waiting .status-box-icon {
+            color: var(--accent-orange);
+        }
+
+        .status-box.working {
+            border-color: rgba(10, 132, 255, 0.3);
+            background: rgba(10, 132, 255, 0.08);
+        }
+
+        .status-box.working .status-box-icon {
+            color: var(--accent-blue);
+        }
+
+        .status-box.success {
+            border-color: rgba(48, 209, 88, 0.3);
+            background: rgba(48, 209, 88, 0.08);
+        }
+
+        .status-box.success .status-box-icon {
+            color: var(--accent-green);
+        }
+
+        .status-box.error {
+            border-color: rgba(255, 69, 58, 0.3);
+            background: rgba(255, 69, 58, 0.08);
+        }
+
+        .status-box.error .status-box-icon {
+            color: var(--accent-red);
+        }
+
+        .status-box-icon {
+            flex-shrink: 0;
+        }
+
+        .status-box-content {
+            flex: 1;
+        }
+
+        .status-box-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .status-box-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .reset-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .reset-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .status-box.error .reset-btn {
+            background: rgba(255, 69, 58, 0.2);
+            border-color: rgba(255, 69, 58, 0.4);
+            color: var(--accent-red);
+        }
+
+        .status-box.error .reset-btn:hover {
+            background: rgba(255, 69, 58, 0.3);
+        }
+
+        /* Animations */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .animate-pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Console */
+        .console-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .console-header {
+            height: 40px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .console-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .console-btn {
+            padding: 4px 10px;
+            background: transparent;
+            border: none;
+            color: var(--text-tertiary);
+            font-size: 11px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.15s ease;
+        }
+
+        .console-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .console-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 16px;
+            font-family: 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            display: flex;
+            gap: 12px;
+        }
+
+        .log-time {
+            color: var(--text-tertiary);
+            opacity: 0.6;
+            flex-shrink: 0;
+            width: 56px;
+        }
+
+        .log-msg {
+            color: var(--text-secondary);
+        }
+
+        .log-msg.success {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .log-msg.error {
+            color: var(--accent-red);
+            font-weight: 600;
+        }
+
+        .log-msg.accent {
+            color: var(--accent-blue);
+            font-weight: 600;
+        }
+
+        .log-msg.warning {
+            color: var(--accent-orange);
+        }
+
+        /* History Panel - Collapsible */
+        .history-panel {
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            position: relative;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .history-panel.open {
+            width: 300px;
+        }
+
+        .history-panel.closed {
+            width: 48px;
+        }
+
+        .history-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 28px;
+            height: 28px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            transition: all 0.2s ease;
+        }
+
+        .history-toggle:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+        }
+
+        .history-badge-mini {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            background: var(--accent-blue);
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 600;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .history-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .history-header {
+            height: 48px;
+            padding: 0 16px;
+            padding-left: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .history-header-left {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .history-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .history-count {
+            padding: 2px 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+        }
+
+        .history-toolbar {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .toolbar-selected {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .toolbar-icon-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+        }
+
+        .toolbar-icon-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-primary);
+        }
+
+        .toolbar-icon-btn.danger:hover {
+            background: rgba(255, 69, 58, 0.15);
+            color: var(--accent-red);
+            border-color: rgba(255, 69, 58, 0.3);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .history-empty {
+            padding: 48px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: var(--text-tertiary);
+            font-size: 13px;
+        }
+
+        .history-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid transparent;
             border-radius: 10px;
-            padding: 10px 14px;
-            transition: all 0.2s;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .apple-input:focus {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.2);
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .history-item.selected {
+            background: rgba(10, 132, 255, 0.1);
+            border-color: rgba(10, 132, 255, 0.3);
+        }
+
+        .history-item-icon {
+            width: 36px;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-tertiary);
+            flex-shrink: 0;
+        }
+
+        .history-item.selected .history-item-icon {
+            background: rgba(10, 132, 255, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .history-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .history-item-name {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'SF Mono', Monaco, monospace;
+            margin-bottom: 2px;
+        }
+
+        .history-item-time {
+            display: block;
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .history-item-check {
+            width: 24px;
+            height: 24px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .checkbox-hidden {
+            display: none;
+        }
+
+        .history-table {
+            width: 100%;
+        }
+
+        .history-table th {
+            padding: 10px 16px;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.02);
+            position: sticky;
+            top: 0;
+        }
+
+        .history-table td {
+            padding: 10px 16px;
+            font-size: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .history-table tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .history-name {
+            font-weight: 600;
+            font-family: 'SF Mono', Monaco, monospace;
+            color: var(--text-primary);
+        }
+
+        .history-time {
+            color: var(--text-tertiary);
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            appearance: none;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .checkbox:checked {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .checkbox:checked::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 6px;
+            width: 4px;
+            height: 8px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        /* Overlay Modal */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(40px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: pointer;
+        }
+
+        .overlay-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 32px;
+            border-width: 3px;
+            border-style: solid;
+        }
+
+        .overlay-icon.success {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 60px rgba(48, 209, 88, 0.4);
+        }
+
+        .overlay-icon.waiting {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 60px rgba(10, 132, 255, 0.4);
+        }
+
+        .overlay-icon.error {
+            border-color: var(--accent-red);
+            box-shadow: 0 0 60px rgba(255, 69, 58, 0.4);
+        }
+
+        .overlay-icon svg {
+            width: 48px;
+            height: 48px;
+        }
+
+        .overlay-title {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .overlay-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .overlay-download {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 24px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .overlay-download:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-green);
+        }
+
+        .download-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--accent-green);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .download-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .download-text {
+            text-align: left;
+        }
+
+        .download-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-green);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .download-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .overlay-dismiss {
+            margin-top: 32px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Delete Modal */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-card {
+            width: 340px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            text-align: center;
+        }
+
+        .modal-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 69, 58, 0.15);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+
+        .modal-icon svg {
+            width: 24px;
+            height: 24px;
+            color: var(--accent-red);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .modal-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .modal-actions {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .modal-btn {
+            height: 44px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .modal-btn.cancel {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+        }
+
+        .modal-btn.cancel:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-btn.delete {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .modal-btn.delete:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Select Dropdown */
+        .select-field {
+            width: 100%;
+            height: 44px;
+            padding: 0 14px;
+            padding-right: 40px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid transparent;
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236e6e73'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 18px;
+        }
+
+        .select-field:focus {
             outline: none;
+            border-color: var(--border-focused);
         }
 
-        ::-webkit-scrollbar {
-            width: 0px;
+        .select-field option {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* Spinning animation */
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        /* Mode description */
+        .mode-desc {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            line-height: 1.5;
+            padding: 8px 4px;
         }
     </style>
 </head>
 
-<body class="h-screen w-screen flex items-center justify-center p-0 md:p-6" x-data="appData()" x-init="init()" x-cloak>
+<body x-data="appData()" x-init="init()" x-cloak>
 
-    <main
-        class="w-full max-w-[1280px] h-full md:h-[800px] glass md:rounded-3xl border-none md:border border-white/10 flex overflow-hidden shadow-2xl relative z-10">
+    <!-- Status Overlay -->
+    <div x-show="lastNotification" @click="lastNotification = null" class="overlay"
+        x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100" style="display: none;">
 
-        <!-- LEFT PANEL: Studio Config -->
-        <aside class="w-[420px] bg-white/[0.02] border-r border-white/5 flex flex-col shrink-0">
-            <!-- Logo area -->
-            <div class="h-16 px-8 flex items-center border-b border-white/5">
-                <div class="flex items-center space-x-3">
-                    <div
-                        class="w-8 h-8 bg-apple-blue rounded-lg flex items-center justify-center shadow-lg shadow-apple-blue/20">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </div>
-                    <span class="text-lg font-bold tracking-tight text-white/90">nRF5 AirTag <span
-                            class="text-apple-muted font-medium text-base ml-1"
-                            x-text="t('toolkit')">Toolkit</span></span>
+        <div class="overlay-icon" :class="{
+                 'success': lastNotification && lastNotification.includes('SUCCESS'),
+                 'waiting': lastNotification && (lastNotification.includes('WAITING') || lastNotification.includes('CONNECTED')),
+                 'error': lastNotification && lastNotification.includes('ERROR')
+             }">
+            <template x-if="lastNotification && lastNotification.includes('SUCCESS')">
+                <svg fill="none" stroke="currentColor" style="color: var(--accent-green)" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                </svg>
+            </template>
+            <template x-if="lastNotification && lastNotification.includes('WAITING')">
+                <svg fill="none" stroke="currentColor"
+                    style="color: var(--accent-blue); animation: pulse 1.5s infinite;" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+            </template>
+            <template x-if="lastNotification && lastNotification.includes('CONNECTED')">
+                <svg fill="none" stroke="currentColor" style="color: var(--accent-blue)" class="animate-spin"
+                    viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+            </template>
+            <template x-if="lastNotification && lastNotification.includes('ERROR')">
+                <svg fill="none" stroke="currentColor" style="color: var(--accent-red)" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </template>
+        </div>
+
+        <h1 class="overlay-title"
+            x-text="lastNotification ? lastNotification.replace('SUCCESS: ', '').replace('ERROR: ', '').replace('WAITING_CONNECTION: ', '').replace('DEVICE_CONNECTED: ', '') : ''">
+        </h1>
+
+        <p class="overlay-subtitle" x-show="lastNotification && lastNotification.includes('WAITING')">
+            Connect your device via J-Link or ST-Link
+        </p>
+
+        <template x-if="downloadUrl && lastNotification && lastNotification.includes('SUCCESS')">
+            <a :href="downloadUrl" @click.stop class="overlay-download">
+                <div class="download-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
                 </div>
+                <div class="download-text">
+                    <div class="download-label">Ready</div>
+                    <div class="download-title" x-text="t('downloadZip')">Download Package</div>
+                </div>
+            </a>
+        </template>
+
+        <div class="overlay-dismiss" x-text="t('status_ready')">DISMISS</div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div x-show="deleteModal" class="modal-backdrop" x-transition.opacity style="display: none;">
+        <div class="modal-card" @click.away="deleteModal = false">
+            <div class="modal-icon">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="modal-title" x-text="t('confirmDeleteTitle')">Delete Files?</h3>
+            <p class="modal-desc" x-text="t('confirmDeleteDesc', {n: selectedFiles.length})"></p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" @click="deleteModal = false">Cancel</button>
+                <button class="modal-btn delete" @click="executeDelete()">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                <div class="logo-text">nRF5 AirTag <span x-text="t('toolkit')">Toolkit</span></div>
             </div>
 
-            <!-- Settings -->
-            <div class="flex-1 overflow-y-auto p-6 space-y-4 custom-scroll">
-                <!-- Device Group -->
-                <section class="space-y-4"> <!-- Increased spacing -->
-                    <!-- Chip Selector (NEW) -->
-                    <div class="px-1">
-                        <div class="flex items-center justify-between mb-1.5">
-                            <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em]"
-                                x-text="t('chipModel')">Chip Model</h3>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button @click="config.chip = '1'"
-                                :class="config.chip === '1' ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-apple-muted hover:bg-white/10'"
-                                class="py-2 rounded-lg text-[11px] font-bold transition-all">nRF51822</button>
-                            <button @click="config.chip = '2'"
-                                :class="config.chip === '2' ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-apple-muted hover:bg-white/10'"
-                                class="py-2 rounded-lg text-[11px] font-bold transition-all">nRF52832</button>
-                            <button @click="config.chip = '3'"
-                                :class="config.chip === '3' ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-apple-muted hover:bg-white/10'"
-                                class="py-2 rounded-lg text-[11px] font-bold transition-all">nRF52810</button>
-                        </div>
-                    </div>
+            <div class="header-controls">
+                <div class="lang-switcher">
+                    <button class="lang-btn" :class="lang === 'en' ? 'active' : ''" @click="lang = 'en'">EN</button>
+                    <button class="lang-btn" :class="lang === 'zh' ? 'active' : ''" @click="lang = 'zh'">中文</button>
+                </div>
+                <div class="status-badge">
+                    <div class="status-dot" :class="status.toLowerCase()"></div>
+                    <span class="status-text" x-text="t('status_'+status.toLowerCase())"></span>
+                </div>
+            </div>
+        </header>
 
-                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1 pt-2"
-                        x-text="t('deviceIdentity')">General</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
-                                x-text="t('prefix')">ID Prefix</label>
-                            <input x-model="config.prefix"
-                                @input="$el.value = $el.value.toUpperCase().slice(0,5); config.prefix = $el.value"
-                                type="text"
-                                class="apple-input w-full h-10 text-base font-semibold text-white tracking-widest uppercase">
+        <!-- Main -->
+        <div class="app-main">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-content">
+                    <!-- Hardware & Sensing (Combined Top Group) -->
+                    <div class="form-group">
+                        <div class="section-header">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            <span x-text="lang === 'zh' ? '硬件与感知' : 'HARDWARE & SENSING'">硬件与感知</span>
                         </div>
-                        <div class="space-y-1">
-                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
-                                x-text="t('index')">Start Number</label>
-                            <input x-model="config.start_num" type="number"
-                                class="apple-input w-full h-10 text-base font-semibold text-white">
-                        </div>
-                    </div>
-                </section>
 
-                <!-- Mode Group -->
-                <section class="space-y-3">
-                    <div class="flex items-center justify-between px-1">
-                        <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em]"
-                            x-text="t('security')">Key Mode</h3>
-                        <div x-show="config.mode === '2'"
-                            class="flex items-center space-x-2 animate-in fade-in slide-in-from-right-2">
-                            <input x-model="config.key_count" type="number" min="1" max="200"
-                                class="apple-input w-16 h-7 text-xs font-bold text-center p-0">
-                        </div>
-                    </div>
-                    <div class="flex p-1 bg-apple-black/50 rounded-xl border border-white/5">
-                        <button @click="config.mode = '1'"
-                            :class="config.mode === '1' ? 'bg-white text-black text-shadow-none shadow-lg' : 'text-apple-muted'"
-                            class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all px-2"
-                            x-text="t('dynamicMode')">Dynamic</button>
-                        <button @click="config.mode = '2'"
-                            :class="config.mode === '2' ? 'bg-white text-black text-shadow-none shadow-lg' : 'text-apple-muted'"
-                            class="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all px-2"
-                            x-text="t('staticMode')">Static</button>
-                    </div>
-                    <div class="px-1 min-h-[32px]">
-                        <p class="text-[11px] leading-relaxed text-apple-muted/80"
-                            x-text="config.mode === '1' ? t('dynamicDesc') : t('staticDesc', {n: config.key_count})">
-                        </p>
-                    </div>
-                </section>
-
-                <!-- Timing Group -->
-                <section class="space-y-2">
-                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1"
-                        x-text="t('timing')">Timing Settings</h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
-                                x-text="t('baseInterval')">Interval (ms)</label>
-                            <input x-model="config.base_interval" type="number" step="10" @wheel.prevent
-                                class="apple-input w-full h-10 text-base font-semibold text-white focus:text-apple-blue transition-colors">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[11px] text-apple-muted font-bold pl-1 uppercase tracking-widest"
-                                x-text="t('intervalStep')">Step (ms)</label>
-                            <input x-model="config.interval_step" type="number" step="1" @wheel.prevent
-                                class="apple-input w-full h-10 text-base font-semibold text-white focus:text-apple-blue transition-colors">
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Hardware Group -->
-                <section class="space-y-3">
-                    <h3 class="text-[12px] font-bold text-apple-muted uppercase tracking-[0.2em] px-1"
-                        x-text="t('hardware')">Hardware Interface</h3>
-                    <div class="space-y-2.5">
-                        <div class="relative group">
-                            <select x-model="config.debugger"
-                                class="apple-input w-full h-11 text-base font-medium pr-10 appearance-none bg-apple-black/40 transition-all"
-                                :class="autoDetected ? 'ring-2 ring-apple-blue/30 border-apple-blue/50' : ''"
-                                style="background-image: url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 fill=%22none%22 viewBox=%220 0 24 24%22 stroke=%22%2386868b%22%3E%3Cpath stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-width=%222%22 d=%22M19 9l-7 7-7-7%22%3E%3C/path%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px;">
+                        <!-- Debugger Selector -->
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                            <select class="select-field" x-model="config.debugger" style="flex: 1; height: 38px;">
                                 <option value="1">Segger J-Link</option>
                                 <option value="2">ST-Link V2/V3</option>
                             </select>
-                            <template x-if="autoDetected">
-                                <span
-                                    class="absolute -top-2 -right-1 bg-apple-blue text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-lg animate-bounce"
-                                    x-text="t('auto')">AUTO</span>
-                            </template>
-                        </div>
-                        <div class="space-y-2 px-1">
-                            <div class="flex items-center justify-between group cursor-pointer"
-                                @click="config.flash_sd = !config.flash_sd">
-                                <span
-                                    class="text-[14px] font-medium text-white/90 group-hover:text-white transition-colors"
-                                    x-text="t('flashSd') + ' (' + getStackName() + ')'">Flash SoftDevice</span>
-                                <div class="apple-switch" :class="config.flash_sd ? 'active' : ''">
-                                    <div class="apple-switch-knob"></div>
-                                </div>
-                            </div>
-                            <div class="flex items-center justify-between group cursor-pointer"
-                                @click="config.dcdc = !config.dcdc">
-                                <span
-                                    class="text-[14px] font-medium text-white/90 group-hover:text-white transition-colors"
-                                    x-text="t('enableDcdc')">Internal DC/DC</span>
-                                <div class="apple-switch" :class="config.dcdc ? 'active' : ''">
-                                    <div class="apple-switch-knob"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            </div>
-
-            <!-- Action Area -->
-            <div class="p-6 border-t border-white/5 bg-white/[0.01]">
-                <button @click="startFlash()" :disabled="isFlashing"
-                    class="w-full h-14 bg-apple-blue hover:bg-[#0077ed] disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl text-[15px] font-bold text-white transition-all transform active:scale-[0.98] shadow-2xl shadow-apple-blue/20"
-                    x-text="isFlashing ? t('processing') : t('startFlash')"></button>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT: Interaction Area -->
-        <main class="flex-1 flex flex-col relative">
-            <!-- Toast Notification Area -->
-            <div class="absolute top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-                <template x-if="lastNotification">
-                    <div
-                        class="bg-green-500 text-white px-6 py-3 rounded-full shadow-2xl flex items-center space-x-3 animate-in fade-in slide-in-from-top-4 duration-500">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span class="text-sm font-bold tracking-wide" x-text="lastNotification"></span>
-                    </div>
-                </template>
-            </div>
-
-            <!-- Header -->
-            <div class="w-full h-20 px-10 flex items-center justify-end border-b border-white/5 space-x-6">
-                <!-- Lang -->
-                <div class="flex p-1 bg-white/5 rounded-full border border-white/5">
-                    <button @click="lang = 'en'" :class="lang === 'en' ? 'bg-white text-black' : 'text-apple-muted'"
-                        class="px-3 py-1 rounded-full text-[10px] font-bold transition-all">EN</button>
-                    <button @click="lang = 'zh'" :class="lang === 'zh' ? 'bg-white text-black' : 'text-apple-muted'"
-                        class="px-3 py-1 rounded-full text-[10px] font-bold transition-all">中文</button>
-                </div>
-                <!-- Status -->
-                <div class="flex items-center space-x-3 bg-white/5 px-4 py-2 rounded-full border border-white/5">
-                    <span class="w-1.5 h-1.5 rounded-full"
-                        :class="status === 'Ready' ? 'bg-apple-muted' : (status === 'Success' ? 'bg-apple-green shadow-[0_0_12px_rgba(52,199,89,0.5)]' : 'bg-apple-blue animate-pulse')"></span>
-                    <span class="text-[11px] font-bold uppercase tracking-widest text-apple-muted"
-                        x-text="t('status_'+status.toLowerCase())"></span>
-                </div>
-            </div>
-
-            <!-- Core Visualization -->
-            <!-- Core Visualization -->
-            <div class="flex-1 w-full flex flex-col items-center justify-center space-y-10 relative overflow-hidden">
-                <!-- Ambient Glow -->
-                <div class="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-                    <div class="w-[500px] h-[500px] bg-apple-blue/20 blur-[120px] rounded-full transition-colors duration-1000"
-                        :class="{'bg-apple-green/20': status === 'Success', 'bg-red-500/20': status === 'Error'}"></div>
-                </div>
-
-                <div class="relative z-10 flex flex-col items-center justify-center text-center max-w-3xl">
-                    <h2 class="text-apple-muted font-bold text-[13px] uppercase tracking-[0.4em] mb-4 animate-in fade-in slide-in-from-top-2"
-                        x-text="t('heroTitle')">NEXT TARGET</h2>
-                    <h1 class="text-[120px] font-extrabold text-white tracking-tighter leading-none drop-shadow-2xl animate-in zoom-in-95 duration-700"
-                        x-text="padDeviceName(config.prefix, config.start_num)"></h1>
-
-                    <!-- Dynamic Parameter Badge Board -->
-                    <div
-                        class="flex items-center justify-center space-x-3 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div class="px-4 py-2 bg-apple-blue/10 border border-apple-blue/20 rounded-2xl">
-                            <span class="block text-[10px] text-apple-blue font-bold uppercase tracking-widest mb-0.5"
-                                x-text="t('security')">Mode</span>
-                            <div class="flex items-baseline space-x-1">
-                                <span class="text-white font-bold text-sm"
-                                    x-text="config.mode === '1' ? t('dynamicMode') : t('staticMode')"></span>
-                                <template x-if="config.mode === '2'">
-                                    <span class="text-apple-blue/70 text-[10px] font-bold"
-                                        x-text="'(' + config.key_count + ')'"></span>
-                                </template>
-                            </div>
-                        </div>
-                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
-                            <span class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5"
-                                x-text="t('baseInterval')">Interval</span>
-                            <span class="text-white font-bold text-sm"
-                                x-text="(parseInt(config.base_interval) + (parseInt(config.start_num) * parseInt(config.interval_step))) + ' ms'"></span>
-                        </div>
-                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
-                            <span class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5"
-                                x-text="t('hardware')">Debugger</span>
-                            <span class="text-white font-bold text-sm"
-                                x-text="config.debugger === '1' ? 'J-Link' : 'ST-Link'"></span>
-                        </div>
-                        <!-- New: Stack & DC/DC Badges -->
-                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
-                            <span
-                                class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5">Stack</span>
-                            <span class="font-bold text-sm"
-                                :class="config.flash_sd ? 'text-apple-green' : 'text-apple-muted'"
-                                x-text="config.flash_sd ? getStackName() : 'OFF'"></span>
-                        </div>
-                        <div class="px-4 py-2 bg-white/5 border border-white/10 rounded-2xl">
-                            <span
-                                class="block text-[10px] text-apple-muted font-bold uppercase tracking-widest mb-0.5">DC/DC</span>
-                            <span class="font-bold text-sm"
-                                :class="config.dcdc ? 'text-apple-green' : 'text-apple-muted'"
-                                x-text="config.dcdc ? 'ON' : 'OFF'"></span>
-                        </div>
-                    </div>
-
-                    <p class="text-[14px] text-apple-muted/80 font-medium mt-6 leading-relaxed"
-                        x-text="t('heroSubtitle', {ms: (parseInt(config.base_interval) + (parseInt(config.start_num) * parseInt(config.interval_step))) })">
-                    </p>
-
-                    <!-- Download area -->
-                    <div class="mt-10 h-16">
-                        <template x-if="downloadUrl">
-                            <a :href="downloadUrl" target="_blank"
-                                class="inline-flex items-center space-x-3 bg-apple-green/10 hover:bg-apple-green/20 border border-apple-green/30 px-6 py-3 rounded-full transition-all animate-in zoom-in slide-in-from-bottom-2">
-                                <svg class="w-5 h-5 text-apple-green" fill="none" stroke="currentColor"
-                                    viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            <div x-show="debuggerConnected"
+                                style="display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: rgba(48,209,88,0.15); border-radius: 6px; font-size: 11px; color: var(--accent-green); white-space: nowrap; height: 38px;">
+                                <svg fill="currentColor" viewBox="0 0 20 20" width="12" height="12">
+                                    <path fill-rule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clip-rule="evenodd" />
                                 </svg>
-                                <span class="text-[13px] font-bold text-white uppercase tracking-wide"
-                                    x-text="t('downloadZip')">Download Bundle (.ZIP)</span>
-                            </a>
+                                <span x-text="lang === 'zh' ? '已就绪' : 'Ready'"></span>
+                            </div>
+                        </div>
+
+                        <!-- Intelligent Sensing Card -->
+                        <div x-show="detectedChip"
+                            style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; background: rgba(48,209,88,0.1); border: 1px solid rgba(48,209,88,0.2); border-radius: 10px; margin-bottom: 6px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span
+                                    style="color: var(--accent-green); font-weight: 700; font-size: 15px; font-family: 'Inter', system-ui;"
+                                    x-text="detectedChip"></span>
+                                <span
+                                    style="color: var(--accent-green); font-size: 10px; font-weight: 600; opacity: 0.8;"
+                                    x-text="lang === 'zh' ? '自动匹配 ✓' : 'Auto Matched ✓'"></span>
+                            </div>
+                            <div style="color: var(--text-secondary); font-size: 10px; opacity: 0.8;"
+                                x-text="lang === 'zh' ? '架构深度对齐，固件匹配率 100%' : 'Architecture deeply aligned, 100% match'">
+                            </div>
+                        </div>
+
+                        <!-- Manual selection fallback -->
+                        <div x-show="!detectedChip">
+                            <div class="chip-grid" style="margin-bottom: 8px;">
+                                <button class="chip-btn" :class="config.chip === '1' ? 'active' : ''"
+                                    @click="config.chip = '1'">51822</button>
+                                <button class="chip-btn" :class="config.chip === '2' ? 'active' : ''"
+                                    @click="config.chip = '2'">52832</button>
+                                <button class="chip-btn" :class="config.chip === '3' ? 'active' : ''"
+                                    @click="config.chip = '3'">5281x</button>
+                            </div>
+                            <div style="font-size: 10px; color: var(--text-tertiary); opacity: 0.8; padding-left: 2px;"
+                                x-text="lang === 'zh' ? '自动感知优先；受保护芯片请手动选择。' : 'Auto-sensing priority. Manual for protected.'">
+                            </div>
+                        </div>
+
+                        <!-- Auto Flash Integrated Toggle -->
+                        <div class="toggle-row" @click="config.autoflash = !config.autoflash"
+                            style="margin-top: 15px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+                            <span class="toggle-label" style="font-size: 11px; font-weight: 500;"
+                                x-text="t('autoflashTitle')">Auto Flash</span>
+                            <div class="toggle-switch" :class="config.autoflash ? 'on' : ''"
+                                style="transform: scale(0.9); transform-origin: right;">
+                                <div class="toggle-knob"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Device Identity -->
+                    <div class="form-group">
+                        <div class="section-header">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                            </svg>
+                            <span x-text="t('deviceIdentity')">DEVICE IDENTITY</span>
+                        </div>
+                        <div class="form-row">
+                            <div>
+                                <label class="input-label" x-text="t('prefix')">Prefix</label>
+                                <input type="text" class="input-field" x-model="config.prefix"
+                                    @input="$el.value = $el.value.toUpperCase().slice(0,5); config.prefix = $el.value"
+                                    style="text-transform: uppercase; letter-spacing: 2px;">
+                            </div>
+                            <div>
+                                <label class="input-label" x-text="t('index')">Index</label>
+                                <input type="number" class="input-field" x-model="config.start_num">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Key Mode -->
+                    <div class="form-group">
+                        <div class="section-header">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            <span x-text="t('security')">KEY MODE</span>
+                        </div>
+                        <div class="segmented-control">
+                            <button class="segment-btn" :class="config.mode === '1' ? 'active' : ''"
+                                @click="config.mode = '1'" x-text="t('dynamicMode')">Dynamic</button>
+                            <button class="segment-btn" :class="config.mode === '2' ? 'active' : ''"
+                                @click="config.mode = '2'" x-text="t('staticMode')">Static</button>
+                        </div>
+                        <div class="mode-desc"
+                            x-text="config.mode === '1' ? t('dynamicDesc') : t('staticDesc', {n: config.key_count})"
+                            style="margin-top: 10px; font-size: 11px; opacity: 0.6;">
+                        </div>
+                        <template x-if="config.mode === '2'">
+                            <div style="margin-top: 10px;">
+                                <label class="input-label" x-text="t('keyCount')">Key Count</label>
+                                <input type="number" class="input-field" x-model="config.key_count" min="1" max="200">
+                            </div>
                         </template>
                     </div>
-                </div>
-            </div>
 
-            <!-- Integrated Studio Console -->
-            <div class="w-[calc(100%-80px)] h-40 mb-10 mx-10 glass rounded-2xl border border-white/5 flex flex-col overflow-hidden shadow-2xl transition-all"
-                :class="isFlashing ? 'opacity-100 translate-y-0' : 'opacity-60 hover:opacity-100'">
-                <div class="h-8 px-5 flex items-center justify-between bg-white/[0.02] border-b border-white/5">
-                    <span class="text-[10px] font-bold text-apple-muted uppercase tracking-widest"
-                        x-text="t('consoleTitle')">System Diagnostics Console</span>
-                    <button @click="clearLogs()"
-                        class="text-[9px] font-bold text-apple-muted hover:text-white uppercase"
-                        x-text="t('clear')">Wipe</button>
-                </div>
-                <div class="flex-1 overflow-y-auto p-4 px-6 font-mono text-[11px] space-y-1.5 scroll-smooth"
-                    id="log-scroll">
-                    <template x-for="log in logs">
-                        <div class="flex space-x-4 opacity-80 hover:opacity-100 transition-opacity"><span
-                                class="text-white/20 select-none w-14 shrink-0" x-text="log.time"></span><span
-                                :class="getLogClass(log.class)" x-text="log.msg"></span></div>
-                    </template>
-                </div>
-            </div>
-            </section>
-        </main>
+                    <!-- Timing -->
+                    <div class="form-group">
+                        <div class="section-header">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span x-text="t('timing')">TIMING</span>
+                        </div>
+                        <div class="form-row">
+                            <div>
+                                <label class="input-label" x-text="t('baseInterval')">Interval (ms)</label>
+                                <input type="number" class="input-field" x-model="config.base_interval" step="10">
+                            </div>
+                            <div>
+                                <label class="input-label" x-text="t('intervalStep')">Step (ms)</label>
+                                <input type="number" class="input-field" x-model="config.interval_step" step="1">
+                            </div>
+                        </div>
+                    </div>
 
-        <script>
-            function appData() {
-                return {
-                    lang: 'zh',
-                    config: { prefix: 'MSF', start_num: 1, mode: '1', key_count: 200, debugger: '2', chip: '1', gen_offline: true, flash_sd: true, dcdc: false, base_interval: 2000, interval_step: 10 },
-                    status: 'Ready', isFlashing: false, lastNotification: null, logs: [], downloadUrl: null, autoDetected: false,
-                    i18n: {
-                        en: {
-                            toolkit: 'Toolkit', deviceIdentity: 'General', chipModel: 'CHIP MODEL', prefix: 'ID Prefix', index: 'Start Number', security: 'Key Mode', dynamicMode: 'Dynamic Generation', staticMode: 'Fixed Cycle',
-                            keyCount: 'Key Count (Max 200)',
-                            dynamicDesc: 'Seeds generated infinitely in firmware. Keys rotate every 15 minutes. Highly secure.',
-                            staticDesc: 'Cycles through a fixed set of {n} keys. Rotates every 15 minutes. Predictable tracking.',
-                            timing: 'Timing Settings', baseInterval: 'Interval (ms)', intervalStep: 'Step increment (ms)', hardware: 'Debugger', interface: 'Hardware Interface', flashSd: 'Flash SoftDevice',
-                            enableDcdc: 'Enable DC/DC', startFlash: 'START FLASHING', processing: 'FLASHING...', heroTitle: 'NEXT TARGET DEVICE', heroSubtitle: 'Broadcast set at {ms}ms. High precision tracking.',
-                            downloadZip: 'Download Package (.ZIP)', consoleTitle: 'Diagnostic Log', clear: 'Wipe', status_ready: 'Ready', status_busy: 'Active', status_success: 'Done', status_error: 'Error', auto: 'AUTO'
-                        },
-                        zh: {
-                            toolkit: '工具包', deviceIdentity: '基本设置', chipModel: '芯片型号', prefix: '识别前缀', index: '起始编号', security: '密钥模式', dynamicMode: '动态生成', staticMode: '固定循环',
-                            keyCount: '密钥数量 (最大 200)',
-                            dynamicDesc: '固件根据随机种子无限生成密钥。每 15 分钟更换一次，安全性极高。',
-                            staticDesc: '在固定的 {n} 个密钥集合中循环切换。每 15 分钟更换一次，可控性更强。',
-                            timing: '时序设置', baseInterval: '广播间隔 (ms)', intervalStep: '间隔增量 (ms)', hardware: '调试器', interface: '接口类型', flashSd: '安装协议栈',
-                            enableDcdc: '启用内部 DC/DC', startFlash: '开始执行刷写', processing: '正在刷写...', heroTitle: '待刷写目标设备', heroSubtitle: '广播间隔设定：{ms} 毫秒。已针对查找精度优化。',
-                            downloadZip: '下载密钥包 (.ZIP)', consoleTitle: '诊断日志', clear: '清除', status_ready: '就绪', status_busy: '执行中', status_success: '完成', status_error: '失败', auto: '已识别'
-                        }
+                    <div class="toggle-row" @click="config.flash_sd = !config.flash_sd" style="margin-top: 10px;">
+                        <span class="toggle-label" x-text="t('flashSd') + ' (' + getStackName() + ')'">Flash
+                            SoftDevice</span>
+                        <div class="toggle-switch" :class="config.flash_sd ? 'on' : ''">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+
+                    <div class="toggle-row" @click="config.dcdc = !config.dcdc">
+                        <span class="toggle-label" x-text="t('enableDcdc')">Enable DC/DC</span>
+                        <div class="toggle-switch" :class="config.dcdc ? 'on' : ''">
+                            <div class="toggle-knob"></div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="sidebar-footer">
+                    <button class="btn-primary" :class="isFlashing ? 'danger' : ''"
+                        @click="isFlashing ? cancelFlash() : startFlash()"
+                        x-text="isFlashing ? t('cancel') : t('startFlash')">
+                        START FLASHING
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Hero -->
+                <div class="hero-section">
+                    <div class="hero-glow"
+                        :class="status === 'Success' ? 'green' : (status === 'Error' ? 'red' : 'blue')">
+                    </div>
+
+                    <div style="position: relative; z-index: 1; text-align: center; width: 100%; max-width: 800px;">
+                        <!-- Device Name -->
+                        <div class="hero-title" x-text="t('heroTitle')">NEXT TARGET DEVICE</div>
+                        <div class="hero-device" x-text="padDeviceName(config.prefix, config.start_num)">TEST001</div>
+
+                        <!-- Step Progress Indicator -->
+                        <div class="step-progress" x-show="isFlashing || currentStep > 0">
+                            <div class="step-item" :class="getStepClass(1)">
+                                <div class="step-icon">
+                                    <svg x-show="currentStep < 1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <svg x-show="currentStep === 1" class="animate-spin" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <svg x-show="currentStep > 1" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="step-label" x-text="t('step_debugger')">调试器</div>
+                                <div class="step-sublabel" x-show="debuggerName" x-text="debuggerName"></div>
+                            </div>
+                            <div class="step-line" :class="currentStep > 1 ? 'active' : ''"></div>
+                            <div class="step-item" :class="getStepClass(2)">
+                                <div class="step-icon">
+                                    <svg x-show="currentStep < 2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                    </svg>
+                                    <svg x-show="currentStep === 2" class="animate-spin" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <svg x-show="currentStep > 2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="step-label" x-text="t('step_chip')">芯片</div>
+                                <div class="step-sublabel" x-show="detectedChip" x-text="detectedChip"></div>
+                            </div>
+                            <div class="step-line" :class="currentStep > 2 ? 'active' : ''"></div>
+                            <div class="step-item" :class="getStepClass(3)">
+                                <div class="step-icon">
+                                    <svg x-show="currentStep < 3" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                    </svg>
+                                    <svg x-show="currentStep === 3" class="animate-spin" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <svg x-show="currentStep > 3" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="step-label" x-text="t('step_build')">生成固件</div>
+                            </div>
+                            <div class="step-line" :class="currentStep > 3 ? 'active' : ''"></div>
+                            <div class="step-item" :class="getStepClass(4)">
+                                <div class="step-icon">
+                                    <svg x-show="currentStep < 4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    <svg x-show="currentStep === 4" class="animate-spin" fill="none"
+                                        stroke="currentColor" viewBox="0 0 24 24" width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <svg x-show="currentStep > 4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="step-label" x-text="t('step_flash')">刷写</div>
+                            </div>
+                            <div class="step-line" :class="currentStep > 4 ? 'active' : ''"></div>
+                            <div class="step-item" :class="getStepClass(5)">
+                                <div class="step-icon">
+                                    <svg x-show="currentStep < 5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <svg x-show="currentStep >= 5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                        width="20" height="20">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div class="step-label" x-text="t('step_done')">完成</div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Auto-Correction Toast (Floating) -->
+                    <div x-show="showAutoCorrectToast" x-transition:enter="transition ease-out duration-300"
+                        x-transition:enter-start="opacity-0 transform translate-y-4"
+                        x-transition:enter-end="opacity-100 transform translate-y-0"
+                        x-transition:leave="transition ease-in duration-300"
+                        x-transition:leave-start="opacity-100 transform translate-y-0"
+                        x-transition:leave-end="opacity-0 transform translate-y-4"
+                        style="position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); z-index: 100; pointer-events: none;">
+                        <div
+                            style="background: rgba(48,209,88,0.95); backdrop-filter: blur(10px); color: white; padding: 12px 24px; border-radius: 12px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 10px; box-shadow: 0 8px 32px rgba(48,209,88,0.3); border: 1px solid rgba(255,255,255,0.2);">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span
+                                x-text="lang === 'zh' ? '[智能校准] 型号差异已自动同步，不必担心。' : '[Smart Calibration] Chip auto-synced. No worries.'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Status Message Box -->
+                    <div class="status-box" :class="statusBoxClass" x-show="currentStep > 0 || statusMessage">
+                        <div class="status-box-icon">
+                            <svg x-show="statusBoxClass === 'info'" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" width="24" height="24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg x-show="statusBoxClass === 'waiting'" class="animate-pulse" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg x-show="statusBoxClass === 'working'" class="animate-spin" fill="none"
+                                stroke="currentColor" viewBox="0 0 24 24" width="24" height="24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <svg x-show="statusBoxClass === 'success'" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" width="24" height="24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <svg x-show="statusBoxClass === 'error'" fill="none" stroke="currentColor"
+                                viewBox="0 0 24 24" width="24" height="24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </div>
+                        <div class="status-box-content">
+                            <div class="status-box-title" x-text="statusMessage">状态信息</div>
+                            <div class="status-box-hint" x-text="statusHint" x-show="statusHint"></div>
+                        </div>
+                        <!-- Reset Button (show on error) -->
+                        <button class="reset-btn" x-show="errorStep > 0 || (statusBoxClass === 'error' && !isFlashing)"
+                            @click="resetState()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            <span x-text="lang === 'zh' ? '重试' : 'Retry'"></span>
+                        </button>
+                    </div>
+
+                    <!-- Parameter Badges (show when idle) -->
+                    <div class="hero-badges" x-show="!isFlashing && currentStep === 0">
+                        <div class="hero-badge">
+                            <div class="badge-label" x-text="t('security')">Mode</div>
+                            <div class="badge-value" x-text="config.mode === '1' ? t('dynamicMode') : t('staticMode')">
+                                Dynamic</div>
+                        </div>
+                        <div class="hero-badge">
+                            <div class="badge-label" x-text="t('baseInterval')">Interval</div>
+                            <div class="badge-value"
+                                x-text="(parseInt(config.base_interval) + (parseInt(config.start_num) * parseInt(config.interval_step))) + ' ms'">
+                                2000 ms</div>
+                        </div>
+                        <div class="hero-badge">
+                            <div class="badge-label" x-text="t('hardware')">Debugger</div>
+                            <div class="badge-value" x-text="config.debugger === '1' ? 'J-Link' : 'ST-Link'">ST-Link
+                            </div>
+                        </div>
+                        <div class="hero-badge">
+                            <div class="badge-label">Stack</div>
+                            <div class="badge-value" :class="config.flash_sd ? 'green' : 'muted'"
+                                x-text="config.flash_sd ? getStackName() : 'OFF'">S130</div>
+                        </div>
+                        <div class="hero-badge">
+                            <div class="badge-label">DC/DC</div>
+                            <div class="badge-value" :class="config.dcdc ? 'green' : 'muted'"
+                                x-text="config.dcdc ? 'ON' : 'OFF'">OFF</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Console -->
+                <div class="console-section">
+                    <div class="console-panel">
+                        <div class="console-header">
+                            <span class="console-title" x-text="t('consoleTitle')">DIAGNOSTIC LOG</span>
+                            <button class="console-btn" @click="clearLogs()" x-text="t('clear')">Clear</button>
+                        </div>
+                        <div class="console-body" id="log-scroll">
+                            <template x-for="log in logs">
+                                <div class="log-line">
+                                    <span class="log-time" x-text="log.time"></span>
+                                    <span class="log-msg" :class="getLogClass(log.class)" x-text="log.msg"></span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- History Panel (Collapsible) -->
+            <aside class="history-panel" :class="historyOpen ? 'open' : 'closed'">
+                <!-- Toggle Button (Always Visible) -->
+                <button class="history-toggle" @click="historyOpen = !historyOpen"
+                    :title="historyOpen ? 'Hide History' : 'Show History'">
+                    <svg x-show="!historyOpen" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18"
+                        height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <svg x-show="historyOpen" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18"
+                        height="18">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span class="history-badge-mini" x-show="!historyOpen && historyFiles.length > 0"
+                        x-text="historyFiles.length"></span>
+                </button>
+
+                <!-- Panel Content -->
+                <div class="history-content" x-show="historyOpen" x-transition:enter="slide-in"
+                    x-transition:leave="slide-out">
+                    <div class="history-header">
+                        <div class="history-header-left">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"
+                                style="opacity: 0.5;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span class="history-title" x-text="t('historyTitle')">History</span>
+                        </div>
+                        <span class="history-count" x-text="historyFiles.length">0</span>
+                    </div>
+
+                    <!-- Toolbar -->
+                    <div class="history-toolbar" x-show="selectedFiles.length > 0" x-transition>
+                        <span class="toolbar-selected" x-text="selectedFiles.length + ' selected'"></span>
+                        <div class="toolbar-actions">
+                            <button class="toolbar-icon-btn" @click="downloadSelected()" title="Download">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
+                            </button>
+                            <button class="toolbar-icon-btn danger" @click="confirmDelete()" title="Delete">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- List -->
+                    <div class="history-list">
+                        <template x-if="historyFiles.length === 0">
+                            <div class="history-empty">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="32" height="32"
+                                    style="opacity: 0.3; margin-bottom: 12px;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span>尚无刷写记录</span>
+                            </div>
+                        </template>
+
+                        <div class="history-items" x-show="historyFiles.length > 0">
+                            <template x-for="file in historyFiles" :key="file.filename">
+                                <div class="history-item"
+                                    :class="selectedFiles.includes(file.filename) ? 'selected' : ''"
+                                    @click="toggleFileSelect(file.filename)">
+                                    <input type="checkbox" class="checkbox-hidden" :value="file.filename"
+                                        x-model="selectedFiles">
+                                    <div class="history-item-icon">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16"
+                                            height="16">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                                        </svg>
+                                    </div>
+                                    <div class="history-item-info">
+                                        <span class="history-item-name" x-text="file.name"></span>
+                                        <span class="history-item-time" x-text="file.time"></span>
+                                    </div>
+                                    <div class="history-item-check" x-show="selectedFiles.includes(file.filename)">
+                                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16"
+                                            height="16">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                                d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script>
+        function appData() {
+            return {
+                lang: 'zh',
+                config: {
+                    prefix: 'TEST',
+                    start_num: 1,
+                    mode: '1',
+                    key_count: 200,
+                    debugger: '2',
+                    chip: '1',
+                    gen_offline: true,
+                    flash_sd: true,
+                    dcdc: false,
+                    base_interval: 2000,
+                    interval_step: 10,
+                    autoflash: false
+                },
+                status: 'Ready',
+                isFlashing: false,
+                lastNotification: null,
+                lastStatusStr: '',
+                logs: [],
+                downloadUrl: null,
+                autoDetected: false,
+                debuggerConnected: false,
+                debuggerName: null,
+                detectedChip: null,
+                historyFiles: [],
+                selectedFiles: [],
+                deleteModal: false,
+                historyOpen: false,
+                // Step progress state
+                currentStep: 0,  // 0=idle, 1=debugger, 2=chip, 3=build, 4=flash, 5=done
+                errorStep: 0,    // Which step had an error
+                statusMessage: '',
+                statusHint: '',
+                statusBoxClass: 'info',
+                showAutoCorrectToast: false,
+                i18n: {
+                    en: {
+                        toolkit: 'Toolkit',
+                        deviceIdentity: 'Device Identity',
+                        chipModel: 'Chip Model',
+                        prefix: 'ID Prefix',
+                        index: 'Start Number',
+                        security: 'Key Mode',
+                        dynamicMode: 'Dynamic',
+                        staticMode: 'Static',
+                        keyCount: 'Key Count (Max 200)',
+                        dynamicDesc: 'Seeds generated infinitely in firmware. Keys rotate every 15 minutes.',
+                        staticDesc: 'Cycles through a fixed set of {n} keys. Rotates every 15 minutes.',
+                        timing: 'Timing',
+                        baseInterval: 'Interval (ms)',
+                        intervalStep: 'Step (ms)',
+                        hardware: 'Debugger',
+                        flashSd: 'Flash SoftDevice',
+                        enableDcdc: 'Enable DC/DC',
+                        startFlash: 'START FLASHING',
+                        processing: 'FLASHING...',
+                        heroTitle: 'NEXT TARGET DEVICE',
+                        heroSubtitle: 'Broadcast set at {ms}ms.',
+                        downloadZip: 'Download Package (.ZIP)',
+                        consoleTitle: 'Diagnostic Log',
+                        clear: 'Clear',
+                        status_ready: 'Ready',
+                        status_busy: 'Active',
+                        status_success: 'Done',
+                        status_error: 'Error',
+                        auto: 'AUTO',
+                        historyTitle: 'Flash History',
+                        confirmDeleteTitle: 'Delete Files?',
+                        confirmDeleteDesc: 'Are you sure you want to delete {n} files?',
+                        autoflashTitle: 'Auto Flash',
+                        autoflashDesc: 'Detect and flash immediately.',
+                        cancel: 'CANCEL',
+                        step_debugger: 'Debugger',
+                        step_chip: 'Chip',
+                        step_build: 'Build',
+                        step_flash: 'Flash',
+                        step_done: 'Done'
                     },
-                    t(key, params = {}) {
-                        let text = this.i18n[this.lang][key] || key;
-                        for (let p in params) text = text.replace(`{${p}}`, params[p]);
-                        return text;
-                    },
-                    init() {
-                        setInterval(() => this.poll(), 800);
-                        setInterval(() => this.detectHardware(), 2000);
-                    },
-                    async detectHardware() {
-                        if (this.isFlashing) return;
-                        try {
-                            const res = await fetch('/api/detect_debugger');
-                            const data = await res.json();
-                            if (data.debugger && data.debugger !== this.config.debugger) {
+                    zh: {
+                        toolkit: '工具包',
+                        deviceIdentity: '设备标识',
+                        chipModel: '芯片型号',
+                        prefix: '识别前缀',
+                        index: '起始编号',
+                        security: '密钥模式',
+                        dynamicMode: '动态生成',
+                        staticMode: '固定循环',
+                        keyCount: '密钥数量 (最大 200)',
+                        dynamicDesc: '固件根据种子无限生成密钥，每 15 分钟轮换。',
+                        staticDesc: '在固定的 {n} 个密钥中循环，每 15 分钟轮换。',
+                        timing: '时序设置',
+                        baseInterval: '广播间隔 (ms)',
+                        intervalStep: '间隔增量 (ms)',
+                        hardware: '调试器',
+                        flashSd: '安装协议栈',
+                        enableDcdc: '启用内部 DC/DC',
+                        startFlash: '开始刷写',
+                        processing: '正在刷写...',
+                        heroTitle: '目标设备',
+                        heroSubtitle: '广播间隔：{ms} 毫秒',
+                        downloadZip: '下载密钥包 (.ZIP)',
+                        consoleTitle: '诊断日志',
+                        clear: '清除',
+                        status_ready: '就绪',
+                        status_busy: '执行中',
+                        status_success: '完成',
+                        status_error: '失败',
+                        auto: '已识别',
+                        historyTitle: '历史记录',
+                        confirmDeleteTitle: '确认删除？',
+                        confirmDeleteDesc: '确定要删除这 {n} 个文件吗？',
+                        autoflashTitle: '等待连接',
+                        autoflashDesc: '检测到芯片后自动刷入。',
+                        cancel: '取消',
+                        step_debugger: '调试器',
+                        step_chip: '芯片检测',
+                        step_build: '生成固件',
+                        step_flash: '刷写',
+                        step_done: '完成'
+                    }
+                },
+
+                t(key, params = {}) {
+                    let text = this.i18n[this.lang][key] || key;
+                    for (let p in params) text = text.replace(`{${p}}`, params[p]);
+                    return text;
+                },
+
+                init() {
+                    setInterval(() => this.poll(), 800);
+                    setInterval(() => this.detectHardware(), 2000);
+                    this.fetchHistory();
+                },
+
+                async detectHardware() {
+                    if (this.isFlashing) return;
+                    try {
+                        const res = await fetch('/api/detect_debugger');
+                        const data = await res.json();
+                        if (data.detected && data.debugger) {
+                            if (data.debugger !== this.config.debugger) {
                                 this.config.debugger = data.debugger;
                                 this.autoDetected = true;
-                                setTimeout(() => { this.autoDetected = false; }, 3000);
                             }
-                        } catch (e) { }
-                    },
-                    padDeviceName(prefix, num) {
-                        let p = (prefix || 'MSF').toUpperCase(); let padding = Math.max(1, 6 - p.length);
-                        return p + num.toString().padStart(padding, '0');
-                    },
-                    getLogClass(cls) {
-                        if (!cls) return 'text-white/70';
-                        if (cls.includes('red')) return 'text-red-400 font-bold';
-                        if (cls.includes('green')) return 'text-apple-green font-bold';
-                        if (cls.includes('accent')) return 'text-apple-blue font-bold';
-                        return 'text-white/50';
-                    },
-                    getStackName() {
-                        const map = { '1': 'S130', '2': 'S132', '3': 'S112' };
-                        return map[this.config.chip] || 'S130';
-                    },
-                    async startFlash() {
-                        this.lastNotification = null; // Clear previous success tag
-                        this.isFlashing = true; this.status = "Busy"; this.downloadUrl = null;
-                        try {
-                            const res = await fetch('/api/flash', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(this.config) });
-                        } catch (e) { this.isFlashing = false; this.status = "Error"; this.addLog(e.message, "red"); }
-                    },
-                    async poll() {
-                        try {
-                            const res = await fetch('/api/logs'); const data = await res.json();
-                            if (data.logs.length > this.logs.length) {
-                                this.logs = [...this.logs, ...data.logs.slice(this.logs.length)];
-                                this.$nextTick(() => { const el = document.getElementById('log-scroll'); if (el) el.scrollTop = el.scrollHeight; });
-                            }
-                            if (this.isFlashing !== data.is_flashing) {
-                                // Success Detection & Auto-increment
-                                if (!data.is_flashing && this.isFlashing && data.status.startsWith('SUCCESS:')) {
-                                    this.lastNotification = data.status;
-                                    this.config.start_num = parseInt(this.config.start_num) + 1;
-                                    // REMOVED: Auto-hide timer to keep status visible
-                                }
+                            this.debuggerConnected = true;
+                            this.debuggerName = data.name || (data.debugger === '1' ? 'J-Link' : 'ST-Link');
+                        } else {
+                            this.debuggerConnected = false;
+                            this.debuggerName = null;
+                        }
+                    } catch (e) {
+                        this.debuggerConnected = false;
+                        this.debuggerName = null;
+                    }
+                },
 
-                                this.isFlashing = data.is_flashing;
-                                if (data.status === "Success" || data.status === "Error") {
-                                    this.status = data.status;
-                                    if (this.status === "Success") this.config.start_num = parseInt(this.config.start_num) + 1;
+                padDeviceName(prefix, num) {
+                    let p = (prefix || 'TEST').toUpperCase();
+                    let padding = Math.max(1, 6 - p.length);
+                    return p + num.toString().padStart(padding, '0');
+                },
+
+                getLogClass(cls) {
+                    if (!cls) return '';
+                    if (cls.includes('red')) return 'error';
+                    if (cls.includes('green')) return 'success';
+                    if (cls.includes('purple') || cls.includes('accent')) return 'accent';
+                    if (cls.includes('yellow')) return 'warning';
+                    return '';
+                },
+
+                getStackName() {
+                    const map = { '1': 'S130', '2': 'S132', '3': 'S112' };
+                    return map[this.config.chip] || 'S130';
+                },
+
+                resetState() {
+                    // Reset all step/status state to allow retry
+                    this.currentStep = 0;
+                    this.errorStep = 0;
+                    this.statusMessage = '';
+                    this.statusHint = '';
+                    this.statusBoxClass = 'info';
+                    this.isFlashing = false;
+                    this.status = 'Ready';
+                    this.downloadUrl = null;
+                    this.lastNotification = null;
+                    this.detectedChip = null;
+                },
+
+                getStepClass(stepNum) {
+                    if (this.errorStep === stepNum) return 'error';
+                    if (this.currentStep > stepNum) return 'completed';
+                    if (this.currentStep === stepNum) return 'active';
+                    return '';
+                },
+
+                updateStepFromStatus(status) {
+                    // Map backend status messages to step numbers
+                    const s = status.toLowerCase();
+
+                    // Reset error state unless it's an error status
+                    if (!s.includes('error')) {
+                        this.errorStep = 0;
+                    }
+
+                    // Step 1: Debugger
+                    if (s.includes('checking debugger') || s.includes('debugger:') || s.startsWith('debugger')) {
+                        this.currentStep = 1;
+                        if (s.includes('j-link') || s.includes('jlink')) {
+                            this.statusMessage = this.lang === 'zh' ? '调试器: Segger J-Link ✓' : 'Debugger: Segger J-Link ✓';
+                        } else if (s.includes('st-link') || s.includes('stlink')) {
+                            this.statusMessage = this.lang === 'zh' ? '调试器: ST-Link ✓' : 'Debugger: ST-Link ✓';
+                        } else {
+                            this.statusMessage = this.lang === 'zh' ? '正在检测调试器...' : 'Detecting debugger...';
+                        }
+                        this.statusHint = this.lang === 'zh' ? '请确保调试器已连接到电脑' : 'Make sure debugger is connected';
+                        this.statusBoxClass = 'working';
+                    }
+                    // Step 2: Chip
+                    else if (s.includes('checking chip') || s.includes('chip:') || s.startsWith('chip')) {
+                        this.currentStep = 2;
+                        // Extract chip model from status
+                        if (s.includes('nrf51822')) {
+                            this.detectedChip = 'nRF51822';
+                            this.statusMessage = this.lang === 'zh' ? '芯片: nRF51822 ✓' : 'Chip: nRF51822 ✓';
+                        } else if (s.includes('nrf52832')) {
+                            this.detectedChip = 'nRF52832';
+                            this.statusMessage = this.lang === 'zh' ? '芯片: nRF52832 ✓' : 'Chip: nRF52832 ✓';
+                        } else if (s.includes('nrf52810')) {
+                            this.detectedChip = 'nRF52810';
+                            this.statusMessage = this.lang === 'zh' ? '芯片: nRF52810 ✓' : 'Chip: nRF52810 ✓';
+                        } else if (s.includes('nrf52811')) {
+                            this.detectedChip = 'nRF52811';
+                            this.statusMessage = this.lang === 'zh' ? '芯片: nRF52811 ✓' : 'Chip: nRF52811 ✓';
+                        } else {
+                            this.statusMessage = this.lang === 'zh' ? '正在检测芯片...' : 'Detecting chip...';
+                        }
+                        this.statusHint = this.lang === 'zh' ? '请确保芯片已正确连接到调试器' : 'Make sure chip is connected to debugger';
+                        this.statusBoxClass = 'working';
+                    }
+                    // Step 3: Build
+                    else if (s.includes('generating') || s.includes('compiling') || s.includes('building') || s.includes('firmware') || s.includes('offline keys') || s.includes('seed')) {
+                        this.currentStep = 3;
+                        this.statusMessage = this.lang === 'zh' ? '正在生成固件...' : 'Building firmware...';
+                        this.statusHint = this.lang === 'zh' ? '正在编译固件，请稍候' : 'Compiling firmware, please wait';
+                        this.statusBoxClass = 'working';
+                    }
+                    // Step 4: Flash
+                    else if (s.includes('flashing') || s.includes('writing') || s.includes('programming') || s.includes('patching')) {
+                        this.currentStep = 4;
+                        this.statusMessage = this.lang === 'zh' ? '正在刷写固件...' : 'Flashing firmware...';
+                        this.statusHint = this.lang === 'zh' ? '请勿断开连接，刷写过程中请保持设备稳定' : 'Do not disconnect. Keep device stable during flash';
+                        this.statusBoxClass = 'working';
+                    }
+                    // Step 5: Success
+                    else if (s.includes('success') || s.includes('done') || s.includes('complete')) {
+                        this.currentStep = 5;
+                        this.statusMessage = this.lang === 'zh' ? '✓ 刷写完成！' : '✓ Flash complete!';
+                        this.statusHint = this.lang === 'zh' ? '设备已成功烧录，可以断开连接' : 'Device programmed successfully. You can disconnect now';
+                        this.statusBoxClass = 'success';
+                    }
+                    // Errors
+                    else if (s.includes('error')) {
+                        this.statusBoxClass = 'error';
+
+                        // Debugger not found
+                        if (s.includes('debugger not found') || s.includes('debugger missing')) {
+                            this.errorStep = 1;
+                            this.statusMessage = this.lang === 'zh' ? '✕ 调试器未检测到' : '✕ Debugger not detected';
+                            this.statusHint = this.lang === 'zh' ? '请检查调试器的 USB 连接，并确认驱动已正确安装' : 'Check USB connection and ensure drivers are installed';
+                        }
+                        // Chip protected
+                        else if (s.includes('protected') || s.includes('protection')) {
+                            this.errorStep = 2;
+                            this.statusMessage = this.lang === 'zh' ? '✕ 芯片已被保护' : '✕ Chip is protected';
+                            this.statusHint = this.lang === 'zh' ? '芯片启用了读保护。需要执行 mass erase（完全擦除）后才能刷写' : 'Chip has read protection enabled. Run mass erase to unlock';
+                        }
+                        // Chip mismatch
+                        else if (s.includes('mismatch') || s.includes('detected')) {
+                            this.errorStep = 2;
+                            // Extract detected chip from status message
+                            const match = s.match(/detected\s+(nrf\d+)/i);
+                            const detectedChip = match ? match[1].toUpperCase() : 'Unknown';
+                            this.statusMessage = this.lang === 'zh' ? `✕ 芯片型号不匹配 (${detectedChip})` : `✕ Chip mismatch (${detectedChip})`;
+                            this.statusHint = this.lang === 'zh' ? '检测到的芯片与设置不符。请在左侧「芯片型号」中选择正确的型号后重试' : 'Detected chip differs from selection. Update chip model in settings and retry';
+                        }
+                        // Chip disconnected
+                        else if (s.includes('disconnected') || s.includes('not found') && s.includes('chip')) {
+                            this.errorStep = 2;
+                            this.statusMessage = this.lang === 'zh' ? '✕ 芯片未连接' : '✕ Chip not connected';
+                            this.statusHint = this.lang === 'zh' ? '请检查芯片与调试器的连线（VCC/GND/SWDIO/SWCLK）' : 'Check chip wiring (VCC/GND/SWDIO/SWCLK)';
+                        }
+                        // Build error
+                        else if (s.includes('compile') || s.includes('build') || s.includes('make')) {
+                            this.errorStep = 3;
+                            this.statusMessage = this.lang === 'zh' ? '✕ 固件编译失败' : '✕ Firmware build failed';
+                            this.statusHint = this.lang === 'zh' ? '编译过程出错，请检查日志获取详细信息' : 'Build error. Check logs for details';
+                        }
+                        // Flash error
+                        else if (s.includes('flash') || s.includes('write') || s.includes('program')) {
+                            this.errorStep = 4;
+                            this.statusMessage = this.lang === 'zh' ? '✕ 固件刷写失败' : '✕ Flash failed';
+                            this.statusHint = this.lang === 'zh' ? '刷写过程出错，请检查连接并重试' : 'Flash error. Check connection and retry';
+                        }
+                        // Generic error
+                        else {
+                            this.errorStep = this.currentStep || 1;
+                            this.statusMessage = this.lang === 'zh' ? '✕ 操作失败' : '✕ Operation failed';
+                            this.statusHint = this.lang === 'zh' ? '请查看日志获取详细错误信息' : 'Check logs for error details';
+                        }
+                    }
+                    // Waiting state
+                    else if (s.includes('waiting') || s.includes('ready') || s.includes('idle') || s.includes('initializing')) {
+                        if (this.isFlashing && this.currentStep === 0) {
+                            this.currentStep = 1;
+                        }
+                        this.statusMessage = this.lang === 'zh' ? '正在初始化...' : 'Initializing...';
+                        this.statusHint = this.lang === 'zh' ? '准备开始刷写流程' : 'Preparing flash process';
+                        this.statusBoxClass = 'working';
+                    }
+                },
+
+                async startFlash() {
+                    this.lastNotification = null;
+                    this.isFlashing = true;
+                    this.status = 'Busy';
+                    this.downloadUrl = null;
+                    // Reset step progress
+                    this.currentStep = 1;
+                    this.errorStep = 0;
+                    this.statusMessage = this.lang === 'zh' ? '正在初始化...' : 'Initializing...';
+                    this.statusHint = this.lang === 'zh' ? '准备开始刷写流程' : 'Preparing flash process';
+                    this.statusBoxClass = 'working';
+                    try {
+                        await fetch('/api/flash', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.config)
+                        });
+                    } catch (e) {
+                        this.isFlashing = false;
+                        this.status = 'Error';
+                        this.errorStep = 1;
+                        this.statusMessage = this.lang === 'zh' ? '✕ 请求失败' : '✕ Request failed';
+                        this.statusHint = e.message;
+                        this.statusBoxClass = 'error';
+                        this.addLog(e.message, 'error');
+                    }
+                },
+
+                async cancelFlash() {
+                    try {
+                        await fetch('/api/flash/cancel', { method: 'POST' });
+                        this.addLog('Cancelling...', 'warning');
+                    } catch (e) { }
+                },
+
+                async poll() {
+                    try {
+                        const res = await fetch('/api/logs');
+                        const data = await res.json();
+
+                        if (data.logs.length > this.logs.length) {
+                            const newLogs = data.logs.slice(this.logs.length);
+                            this.logs = [...this.logs, ...newLogs];
+
+                            // Scan new logs for hardware info and auto-correction events
+                            newLogs.forEach(l => {
+                                const msg = l.msg.toLowerCase();
+                                // Extract Debugger Name (e.g., "Debugger: Segger J-Link ✓")
+                                if (msg.includes('debugger:')) {
+                                    const match = l.msg.match(/Debugger:\s+([^✓|]+)/i);
+                                    if (match) this.debuggerName = match[1].trim();
                                 }
+                                // Extract Chip Model (e.g., "Chip: nRF51822 ✓")
+                                if (msg.includes('chip:')) {
+                                    const match = l.msg.match(/Chip:\s+([^✓|]+)/i);
+                                    if (match) this.detectedChip = match[1].trim();
+                                }
+                                // Auto-correction
+                                if (msg.includes('architecture mismatch') || msg.includes('架构偏移')) {
+                                    this.showAutoCorrectToast = true;
+                                    setTimeout(() => { this.showAutoCorrectToast = false; }, 4000);
+                                }
+                            });
+
+                            this.$nextTick(() => {
+                                const el = document.getElementById('log-scroll');
+                                if (el) el.scrollTop = el.scrollHeight;
+                            });
+                        }
+
+                        if (data.status && data.status !== this.lastStatusStr) {
+                            this.lastStatusStr = data.status;
+
+                            // Update step progress based on backend status
+                            if (this.isFlashing || data.is_flashing) {
+                                this.updateStepFromStatus(data.status);
                             }
-                            if (data.download_file && !this.downloadUrl) this.downloadUrl = "/api/download/" + data.download_file;
-                        } catch (e) { console.error("Log fetch failed", e); }
-                    },
-                    async clearLogs() {
-                        try {
-                            await fetch('/api/logs/clear', { method: 'POST' });
-                            this.logs = [];
-                        } catch (e) { console.error("Clear failed", e); }
-                    },
-                    addLog(msg, cls) {
-                        this.logs.push({ time: new Date().toLocaleTimeString('en-US', { hour12: false, minute: '2-digit', second: '2-digit' }), msg: msg, class: cls });
+
+                            if (data.status.startsWith('WAITING') ||
+                                data.status.startsWith('DEVICE') ||
+                                data.status.startsWith('SUCCESS') ||
+                                data.status.startsWith('ERROR')) {
+                                this.lastNotification = data.status;
+                            }
+
+                            if (data.status.startsWith('SUCCESS')) {
+                                this.config.start_num = parseInt(this.config.start_num) + 1;
+                                this.fetchHistory();
+                                this.status = 'Success';
+                            } else if (data.status === 'Error' || data.status.includes('Error')) {
+                                this.status = 'Error';
+                            } else if (data.is_flashing) {
+                                this.status = 'Busy';
+                            } else {
+                                this.status = 'Ready';
+                            }
+                        }
+
+                        // Reset step state when flashing completes
+                        const wasFlashing = this.isFlashing;
+                        this.isFlashing = data.is_flashing;
+
+                        // Auto-reset step display after 5 seconds on success
+                        if (wasFlashing && !data.is_flashing && this.currentStep === 5) {
+                            setTimeout(() => {
+                                if (!this.isFlashing) {
+                                    this.currentStep = 0;
+                                    this.statusMessage = '';
+                                    this.statusHint = '';
+                                }
+                            }, 5000);
+                        }
+
+                        if (data.download_file && !this.downloadUrl) {
+                            this.downloadUrl = '/api/download/' + data.download_file;
+                        }
+                    } catch (e) {
+                        console.error('Log fetch failed', e);
+                    }
+                },
+
+                async clearLogs() {
+                    try {
+                        await fetch('/api/logs/clear', { method: 'POST' });
+                        this.logs = [];
+                    } catch (e) {
+                        console.error('Clear failed', e);
+                    }
+                },
+
+                addLog(msg, cls) {
+                    this.logs.push({
+                        time: new Date().toLocaleTimeString('en-US', { hour12: false, minute: '2-digit', second: '2-digit' }),
+                        msg: msg,
+                        class: cls
+                    });
+                },
+
+                async fetchHistory() {
+                    try {
+                        const res = await fetch('/api/history');
+                        const data = await res.json();
+                        this.historyFiles = data.files;
+                        const fileSet = new Set(this.historyFiles.map(f => f.filename));
+                        this.selectedFiles = this.selectedFiles.filter(f => fileSet.has(f));
+                    } catch (e) { }
+                },
+
+                toggleSelectAll(checked) {
+                    this.selectedFiles = checked ? this.historyFiles.map(f => f.filename) : [];
+                },
+
+                toggleFileSelect(filename) {
+                    const idx = this.selectedFiles.indexOf(filename);
+                    if (idx > -1) {
+                        this.selectedFiles.splice(idx, 1);
+                    } else {
+                        this.selectedFiles.push(filename);
+                    }
+                },
+
+                async downloadSelected() {
+                    if (this.selectedFiles.length === 0) return;
+                    try {
+                        const res = await fetch('/api/history/archive', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ filenames: this.selectedFiles })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            window.location.href = data.download_url;
+                        }
+                    } catch (e) {
+                        this.addLog('Archive failed', 'error');
+                    }
+                },
+
+                confirmDelete() {
+                    if (this.selectedFiles.length > 0) this.deleteModal = true;
+                },
+
+                async executeDelete() {
+                    try {
+                        const res = await fetch('/api/history/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ filenames: this.selectedFiles })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            this.fetchHistory();
+                            this.selectedFiles = [];
+                            this.deleteModal = false;
+                            this.addLog('Deleted ' + data.deleted.length + ' files', 'accent');
+                        }
+                    } catch (e) {
+                        this.addLog('Delete failed', 'error');
                     }
                 }
             }
-        </script>
+        }
+    </script>
 </body>
 
 </html>

@@ -2,144 +2,120 @@
 
 > [🇺🇸 English](./README.md) | **[🇨🇳 中文](./README_zh.md)**
 
-> **打造属于你自己的 AirTag —— 基于 Apple Find My 网络的极致开源工具箱**
->
-> *让每一块 nRF5 芯片都能被全世界的 iPhone 守护。*
+<p align="center">
+  <br><b>让每一块 nRF5 芯片，都拥有 AirTag 的灵魂。</b><br>
+  目前最强大、最优雅、且唯一具备“零门槛”体验的 Apple Find My 网络固件部署方案。
+</p>
 
-![License](https://img.shields.io/badge/license-MIT-green)
-![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)
-![Hardware](https://img.shields.io/badge/hardware-nRF52810%20|%20nRF52832-blue)
-![Debugger](https://img.shields.io/badge/debugger-JLink%20|%20STLink-orange)
+# 💎 为什么它是行业标杆？
 
----
+如果你厌倦了繁琐的命令行、乱七八糟的密钥管理、以及频繁失效的定位轨迹，**nRF5-AirTag-Toolkit** 就是为你而生的终极答案。
 
-## 📖 简介 (Introduction)
+### 1. ♾️ 全球领先：无限动态密钥 (Infinite Dynamic Keys)
 
-**nRF5-AirTag-Toolkit** 是目前最完善、最“保姆级”的第三方 Find My 网络固件部署方案。
+<p align="center">
+  <video src="docs/images/web_studio_demo.mov" width="800" controls muted autoplay loop style="border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
+    您的浏览器不支持 HTML5 视频播放。
+  </video>
+</p>
 
-它是为了解决开源社区中“刷机难、配置烦、密钥乱”的痛点而诞生的。无论你是拥有 **J-Link** 还是廉价的 **ST-Link**，无论你是资深嵌入式工程师还是没有任何代码基础的小白，这个工具箱都能让你在 5 分钟内点亮你的设备。
+传统方案只能循环使用固定的 200 个密钥，容易被苹果系统识别为“僵尸设备”而减少位置上报。
 
-### ✨ 核心创新 (Core Innovations)
+* **黑科技：** 我们首创了 **Dynamic Seed** 技术，固件内部只需存储一个随机种子。
+* **效果：** 密钥永不重复，无限生成，抗追踪能力完美对标原生 AirTag 隐私标准。
+* **结果：** 定位点连点成线，轨迹丝滑，永不丢包。
 
-#### 1. ♾️ 无限动态密钥 (Infinite Dynamic Keys) —— **本项目最大亮点**
+### 2. 🖥️ 苹果级交互：Web Studio 2.0
 
-传统开源固件仅支持 "Static Mode" (固定密钥)，只能存储约 200 个密钥并循环使用，容易被追踪指纹，且隐私性较差。**更有甚者，Apple 设备一旦检测到密钥重复使用，可能会拒绝上报位置，导致追踪轨迹点越来越稀疏。本项目彻底解决了这一痛点。**
+告别枯燥的黑窗口。我们打造了一个拥有极致工业美感的 Web 智控中心：
 
-**本项目首创 "Dynamic Seed" 技术：**
+* **玻璃拟态设计（Glassmorphism）：** 与 macOS 审美完美统一。
+* **智能感知系统：** 即插即用！硬件类型（J-Link/ST-Link）、芯片型号（51822/52832/5281x）全自动识别，无需手动选择。
+* **动态校准：** 即使你选错了型号，系统也会在刷写瞬间自动纠正。
 
-* **原理**：设备仅存储一个随机种子 (Seed)，通过 SHA256 算法实时计算未来的密钥。
-* **效果**：**密钥永不重复，无限生成。**
-* **隐私**：极高的抗追踪能力，达到 AirTag 原生级别的隐私标准。
+### 3. 🐣 小白零压力：真正的“保姆级”自动化
 
-👉 **[深度解析：无限动态密钥技术详解](docs/16-Dynamic_Keys_技术详解.md)**
+不管你懂不懂代码，只需三步：
 
-#### 2. ⚡️ 极速自动化 (Zero-Friction Flashing)
-
-* **[新] 全系芯片支持**: 一个脚本统一支持 nRF51822 / nRF52832 / nRF52810。
-* **[新] 智能回退机制**: J-Link 模式优先尝试标准方式，失败自动切换 Direct Mode，完美适配 macOS。
-* 自动处理 SoftDevice 协议栈合并与固件补丁。
-
-#### 3. 🖥️ Web Studio 智控中心 (Recommended)
-
-* **颜值巅峰**：玻璃拟态设计，极致的工业美感与交互体验。
-* **全自动流程**：支持硬件自动识别（即插即用）、自动递增 ID、一键下载密钥包。
-* **实时监控**：刷写日志实时回传，所见即所得。
-
-<p align="center"><img src="docs/images/web_studio_ui.png" width="800" alt="Web Studio UI"></p>
-
-#### 4. 🛡️ 救砖黑科技 (Anti-Brick Guard)
-
-* 内置芯片解锁机制，自动检测 `Device is secured` 并执行 Mass Erase 解锁。
-* 这意味着你可以直接购买**拆机芯片**或**量产锁死**的模块，工具自动帮你“洗白”成全新的开发板。
+1. **运行程序**
+2. **点击“开始刷写”**
+3. **点亮 AirTag！**
+所有复杂的 SDK 配置、补丁合并、十六进制转换，全部由后台自动化管家完成。
 
 ---
 
-## 🚀 快速开始 (Quick Start)
+# ✨ 核心特性
 
-我们为不同基础的用户准备了不同的入口：
+| 特性 | 详情 | 优势 |
+| :--- | :--- | :--- |
+| **智能解密** | 自动检测 `Device Security` | **救砖神器**，二手的、锁死的芯片一键“洗白” |
+| **全系兼容** | 支持 nRF51 / nRF52 全家桶 | 一套工具，适配市场上 99% 的常见模块 |
+| **双语日志** | 实时输出中英双语诊断信息 | 刷写过程透明化，排障不再像开盲盒 |
+| **一键交付** | 核心密钥文件打包下载 | 刷完即得，直接在 OpenHaystack/FindMy 中使用 |
 
-### 方案 A：Web Studio (推荐)
+---
 
-最直观的可视化操作，支持全系芯片。
+# 🚀 5 分钟上手
+
+> [!TIP]
+> **准备工作：** 确保你的驱动已安装，且设备通过调试器连接到电脑。
+
+### 第一步：启动引擎
+
+在终端输入一行命令即可启动 Web 控制台：
 
 ```bash
 python3 nrf5_airtag_web.py
 ```
 
-浏览器打开: <http://127.0.0.1:5001>
+### 第二步：进入智控中心
 
-### 方案 B：终端脚本 (Terminal)
+浏览器访问: `http://127.0.0.1:5001`
 
-适合生产线或纯命令行环境。
+### 第三步：见证奇迹
 
-```bash
-./nrf5_airtag_flash.sh
-```
-
-### 📘 文档导航
-
-* **小白入门**:
-  * [nRF51822 统一刷写指南](docs/14-nRF51822_统一刷写工具指南.md) (核心文档)
-  * [nRF52832 刷机保姆级教程](docs/10-nRF52832刷机保姆级教程.md)
-* **进阶技巧**:
-  * [常见开发板接线图集](docs/17-常见开发板接线图集.md) (**New!** 含接线图)
-  * [J-Link 芯片解锁指南](docs/14-nRF51822_统一刷写工具指南.md#4-常见问题-faq)
-  * [完整文档列表](docs/README-文档导航.md)
+点击蓝色的 **「开始刷写」** 按钮。
+你会看到顶部的进度条优雅地跳动，系统会自动识别你的调试器、检测芯片并注入无限密钥。
 
 ---
 
-## 🗺️ 未来路线图 (Roadmap)
+# 📘 文档与支持
 
-我们正在构建更宏大的未来，让 Find My 开发变得像安装 App 一样简单。
+> [!IMPORTANT]
+> 虽然这个工具已经极度简化，但我们依然为你准备了详尽的知识库。
 
-* [x] **🖥️ 跨平台 GUI 客户端 (Web Studio)**
-  * **全新推出**: 基于 Web 技术的 Studio 控制台，支持 macOS/Linux。
-  * **自动化体验**: 鼠标点一点，固件自动补丁、编译、刷写全流程。
-
-* [ ] **🪟 Windows 平台原生支持**
-  * 当前脚本基于 Bash (macOS/Linux)。
-  * 未来将移植 PowerShell 版本，让 Windows 用户不仅能在 WSL 里跑，还能直接原生运行。
-
-* [x] **♾️ 全系 nRF 芯片支持**
-  * [x] nRF52810 (已支持)
-  * [x] nRF52832 (已支持)
-  * [x] nRF51822 (已支持)
-  * [ ] **nRF52840**: 支持 USB Dongle 形态。
+* **[初级] [nRF51822 统一刷写全攻略](docs/14-nRF51822_统一刷写工具指南.md)**
+* **[进阶] [深度解析：无限动态密钥技术](docs/16-Dynamic_Keys_技术详解.md)**
+* **[图集] [常见主流开发板接线示意图](docs/17-常见开发板接线图集.md)**
 
 ---
 
-## 📂 目录结构
+# 📂 架构一览
 
 ```text
 .
-├── config/                 # [隐私] 存放生成的专属密钥和日志 (Git已忽略)
-├── docs/                   # 📚 价值百万的文档库
-├── heystack-nrf5x/         # 核心固件源码 (基于 OpenHaystack)
-├── nrf5_airtag_flash.sh    # ⚡️ 统一命令行刷写工具
-├── nrf5_airtag_web.py      # 🖥️ Web Studio 后端
-├── scripts/                # 辅助工具脚本
-└── README.md
+├── nrf5_airtag_web.py      # 🖥️ 核心：Web Studio 全自动化大脑
+├── templates/              # 🎨 灵魂：极致美学的 UI 交互层
+├── scripts/                # 🛠️ 骨架：高效的底层驱动逻辑
+├── heystack-nrf5x/         # 🧠 基因：深度优化的固件源码
+└── docs/                   # 📚 财富：价值百万的实操干货
 ```
 
 ---
 
-## 🤝 致谢 (Acknowledgements)
+# 🤝 开源致谢与免责
 
-本项目核心固件基于优秀的开源项目二次开发，特此感谢：
+本项目站在巨人的肩膀上，感谢 [OpenHaystack](https://github.com/seemoo-lab/openhaystack) 的卓越工作。
 
-* **[heystack-nrf5x](https://github.com/pix/heystack-nrf5x)**: 本项目的固件核心，基于 acalatrava 的工作进行了 nRF5 适配。
-* **[OpenHaystack](https://github.com/seemoo-lab/openhaystack)**: 逆向工程 Find My 网络的先驱，没有他们就没有这一切。
+**⚠️ 注意：**
 
----
-
-## ⚠️ 免责声明
-
-本项目仅供教育和研究使用。
-
-* 请勿将本项目用于非法追踪他人。
-* AirTag 和 Find My 是 Apple Inc. 的商标。
-* 本项目与 Apple Inc. 无任何关联。
+* 本项目致力于技术研究，请勿用于非法追踪。
+* AirTag 与 Find My 是 Apple Inc. 的注册商标。
+* 本项目是社区驱动的开源实践，与 Apple Inc. 无官方关联。
 
 ---
 
-*Made with ❤️ by Open Source Community*
+<p align="center">
+  <i>用代码，定义属于你的数字领地。</i><br>
+  <b>Made with ❤️ by the Global Open Source Community</b>
+</p>
