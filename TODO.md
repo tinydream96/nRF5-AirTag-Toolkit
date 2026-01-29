@@ -30,6 +30,14 @@
     - 用户仅需下载运行一个文件，无需安装 Python 环境。
     - 启动时自动打开本地浏览器。
     - 支持将 Hex 文件拖拽到窗口刷机。
+    - **全能兼容性**：内置 OpenOCD，理论上支持市面 99% 的调试器 (J-Link, FTDI, DAPLink, etc.)。
+    - **UI 升级**：增加 "调试器类型" 下拉框 (支持 J-Link, DAPLink, ST-Link, CMSIS-DAP 配置文件切换)。
     - 结合 "Local Bridge" 模式，彻底解决 WebUSB 兼容性问题。
   - 工具：PyInstaller, Electron (Optional), webview.
 
+- [ ] **Phase 4: 硬件兼容性扩展**
+  - [ ] **验证 DAPLink / CMSIS-DAP 支持 (High Priority)**
+    - ST-Link 由于驱动/协议限制在 WebUSB 上体验不佳（需 Zadig 换驱动）。
+    - DAPLink 使用标准协议，是 WebUSB 的最佳搭档。需采购硬件进行实测。
+  - [ ] **调研 J-Link WebUSB 可行性**
+    - 结论：困难。J-Link 使用私有非公开协议，且 WebUSB 支持需要特定固件或 Segger 官方 JS 库限制。不像 DAPLink 那样开箱即用。

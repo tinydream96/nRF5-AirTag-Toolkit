@@ -68,6 +68,17 @@ CHIP_MAP = {
     }
 }
 
+# Debugger Configuration Map
+# ID 1 is reserved for Native nrfjprog (J-Link)
+OPENOCD_INTERFACES = {
+    '2': 'interface/stlink.cfg',      # ST-Link
+    '3': 'interface/cmsis-dap.cfg',   # DAPLink / CMSIS-DAP
+    '4': 'interface/jlink.cfg',       # J-Link (via OpenOCD)
+}
+
+def get_openocd_interface(debugger_id):
+    return OPENOCD_INTERFACES.get(str(debugger_id), 'interface/stlink.cfg')
+
 # Auto-detection: map chip name to config key
 CHIP_NAME_TO_KEY = {
     "nRF51822": "1",
@@ -176,7 +187,8 @@ def perform_flash(CHIP_CFG, patch_hex, debugger_type, flash_sd=False, timeout_va
                     raise Exception("JLinkExe failed: Connection Error")
             if not probe_only: log("SUCCESS (JLinkExe)", "success")
             
-    else: # ST-Link
+    else: # OpenOCD based debuggers (ST-Link, DAPLink, etc.)
+        interface = get_openocd_interface(debugger_type)
         flash_family = CHIP_CFG['family']
         o_cmds = []
         if probe_only:
@@ -190,9 +202,12 @@ def perform_flash(CHIP_CFG, patch_hex, debugger_type, flash_sd=False, timeout_va
         
         # Use timeout if provided
         t_st = timeout_val if timeout_val else 20
-        success, output = run_command(["openocd", "-f", "interface/stlink.cfg", "-f", CHIP_CFG['openocd_target'], "-c", "; ".join(o_cmds)], timeout=t_st)
-        if not success: raise Exception(f"OpenOCD: {output}")
-        if not probe_only: log("SUCCESS (OpenOCD/ST-Link)", "success")
+        # Determine interface config arg
+        interface_cfg = interface
+        
+        success, output = run_command(["openocd", "-f", interface_cfg, "-f", CHIP_CFG['openocd_target'], "-c", "; ".join(o_cmds)], timeout=t_st)
+        if not success: raise Exception(f"OpenOCD ({interface}): {output}")
+        if not probe_only: log(f"SUCCESS (OpenOCD/{interface})", "success")
 
 def check_hardware_connection(config, chip_cfg):
     """
@@ -321,12 +336,13 @@ def check_hardware_connection(config, chip_cfg):
         except Exception as e:
             return False, debugger_info, None, 'chip_disconnected', f"芯片检测异常: {str(e)}"
             
-    else:  # ST-Link (OpenOCD)
+    else:  # OpenOCD based debuggers (ST-Link, DAPLink, etc.)
+        interface = get_openocd_interface(debugger_type)
         try:
             # Quick OpenOCD test
             target_file = chip_cfg.get('openocd_target', 'target/nrf51.cfg')
             success, output = run_command([
-                "openocd", "-f", "interface/stlink.cfg", "-f", target_file,
+                "openocd", "-f", interface, "-f", target_file,
                 "-c", "init; targets; shutdown"
             ], timeout=8)
             
@@ -348,12 +364,13 @@ def check_hardware_connection(config, chip_cfg):
             if "protected" in output_lower or "locked" in output_lower:
                 return False, debugger_info, None, 'chip_protected', "芯片已被保护。请使用 mass erase 解锁。"
             elif "no swd" in output_lower or "transport" in output_lower:
-                return False, debugger_info, None, 'chip_disconnected', "SWD 通信失败。请检查连线和目标芯片电源。"
-            else:
-                return False, debugger_info, None, 'chip_disconnected', "无法连接芯片。请检查调试器与芯片的连线。"
-                
+                return False, debugger_info, None, 'chip_disconnected', "无法识别芯片 SWD 接口。"
+            
+            return False, debugger_info, None, 'chip_disconnected', f"OpenOCD Error: {output[:100]}..."
+            
         except Exception as e:
-            return False, debugger_info, None, 'chip_disconnected', f"OpenOCD 检测失败: {str(e)}"
+            return False, debugger_info, None, 'chip_disconnected', f"OpenOCD Check Failed: {str(e)}"
+
     
     return True, debugger_info, chip_info, None, None
 
