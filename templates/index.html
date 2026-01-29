@@ -233,6 +233,85 @@
             color: var(--text-tertiary);
         }
 
+        /* Mode Toggle (Segmented Control) */
+        .mode-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            padding: 3px;
+            background: rgba(118, 118, 128, 0.24);
+            border-radius: 9px;
+            margin-bottom: 20px;
+        }
+
+        .mode-toggle button {
+            border: none;
+            background: none;
+            padding: 6px 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-primary);
+            border-radius: 7px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mode-toggle button.active {
+            background: #636366;
+            color: white;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+            font-weight: 600;
+        }
+
+        /* Improved Chip Grid */
+        .chip-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .chip-btn {
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid transparent;
+            /* No border by default */
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .chip-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+        }
+
+        .chip-btn.active {
+            background: var(--accent-blue);
+            color: white;
+            box-shadow: 0 2px 6px rgba(10, 132, 255, 0.3);
+            font-weight: 600;
+            border-color: transparent;
+        }
+
+        .info-box {
+            margin-top: 8px;
+            margin-bottom: 20px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .info-box b {
+            color: var(--text-primary);
+        }
+
         /* Segmented Control */
         .segmented-control {
             display: flex;
@@ -264,34 +343,7 @@
         }
 
         /* Chip Selector */
-        .chip-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .chip-btn {
-            padding: 10px 8px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid transparent;
-            border-radius: var(--radius-sm);
-            color: var(--text-secondary);
-            font-size: 11px;
-            font-weight: 600;
-            font-family: inherit;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .chip-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .chip-btn.active {
-            background: var(--text-primary);
-            color: var(--bg-primary);
-            border-color: transparent;
-        }
+        /* This section is replaced by Improved Chip Grid above */
 
         /* Toggle Switch */
         .toggle-row {
@@ -1570,15 +1622,35 @@
                             <span x-text="lang === 'zh' ? '运行模式' : 'WORK MODE'">运行模式</span>
                         </div>
 
-                        <div class="segmented-control" style="margin-bottom: 20px;">
-                            <button class="segment-btn" :class="workMode === 'local' ? 'active' : ''"
-                                @click="workMode = 'local'">
-                                <span x-text="lang === 'zh' ? '本地刷机' : 'Local Host'"></span>
+                        <div class="mode-toggle">
+                            <button :class="{'active': workMode === 'local'}" @click="workMode = 'local'">
+                                <span x-text="lang === 'zh' ? '本地刷机' : 'Local Machine'"></span>
                             </button>
-                            <button class="segment-btn" :class="workMode === 'cloud' ? 'active' : ''"
-                                @click="workMode = 'cloud'">
+                            <button :class="{'active': workMode === 'cloud'}" @click="workMode = 'cloud'">
                                 <span x-text="lang === 'zh' ? '云端/WebUSB' : 'Cloud/WebUSB'"></span>
                             </button>
+                        </div>
+
+                        <!-- Mode Description -->
+                        <div class="info-box">
+                            <div x-show="workMode === 'local'">
+                                <span x-show="lang === 'zh'">
+                                    ℹ️ <b>本地模式</b>：需下载本项目并在本地运行 Python 服务。调试器连接至<b>运行服务的电脑</b>。
+                                </span>
+                                <span x-show="lang === 'en'">
+                                    ℹ️ <b>Local Mode</b>: Requires running this project locally. Debugger connects to
+                                    the <b>backend server</b>.
+                                </span>
+                            </div>
+                            <div x-show="workMode === 'cloud'">
+                                <span x-show="lang === 'zh'">
+                                    ℹ️ <b>WebUSB 模式</b>：纯浏览器操作，无需本地 Python 环境。调试器连接至<b>当前浏览器设备</b>。
+                                </span>
+                                <span x-show="lang === 'en'">
+                                    ℹ️ <b>WebUSB Mode</b>: Browser-only. Debugger connects to <b>this device</b> via
+                                    WebUSB.
+                                </span>
+                            </div>
                         </div>
 
                         <div class="section-header" x-show="workMode === 'local'">
@@ -1589,47 +1661,51 @@
                             <span x-text="lang === 'zh' ? '本地硬件' : 'LOCAL HARDWARE'">本地硬件</span>
                         </div>
 
-                        <!-- WebUSB Connect Button (Only in Cloud Mode) -->
-                        <div x-show="workMode === 'cloud'" style="margin-bottom: 20px;">
-                            <div class="section-header">
+                        <!-- 1. LOCAL MODE HARDWARE -->
+                        <div x-show="workMode === 'local'">
+                            <label class="input-label" style="margin-bottom:6px; display:block;"
+                                x-text="lang === 'zh' ? '本地调试器接口' : 'Local Interface'"></label>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
+                                <select class="select-field" x-model="config.debugger" style="flex: 1; height: 38px;">
+                                    <option value="1">Segger J-Link (Native)</option>
+                                    <option value="2">ST-Link V2/V3 (OpenOCD)</option>
+                                    <option value="3">DAPLink / CMSIS-DAP (OpenOCD)</option>
+                                    <option value="4">J-Link (OpenOCD)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 2. CLOUD MODE HARDWARE (WebUSB) -->
+                        <div x-show="workMode === 'cloud'">
+                            <label class="input-label" style="margin-bottom:6px; display:block;"
+                                x-text="lang === 'zh' ? 'WebUSB 驱动类型' : 'WebUSB Driver'"></label>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <select class="select-field" x-model="webUsbDriver" style="flex: 1; height: 38px;">
+                                    <option value="stlink">ST-Link V2/V3 (stlink.js)</option>
+                                    <option value="daplink">DAPLink / CMSIS-DAP (dap.js)</option>
+                                </select>
+                            </div>
+
+                            <div class="section-header" style="margin-top:15px; margin-bottom:10px;">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                         d="M13 10V3L4 14h7v7l9-11h-7z" />
                                 </svg>
-                                <span x-text="lang === 'zh' ? 'WebUSB 连接' : 'WEBUSB CONNECT'">WebUSB 连接</span>
+                                <span x-text="lang === 'zh' ? '连接设备' : 'CONNECT DEVICE'"></span>
                             </div>
+
                             <button class="btn-primary" @click="connectWebUSB()" :disabled="isWebUsbConnecting"
-                                :style="webUsbDevice ? 'background: var(--accent-green);' : ''">
+                                :style="webUsbDevice ? 'background: rgba(48,209,88,0.15); color: var(--accent-green); border: 1px solid var(--accent-green);' : ''">
                                 <span x-show="!isWebUsbConnecting && !webUsbDevice"
-                                    x-text="lang === 'zh' ? '连接调试器' : 'Connect Debugger'"></span>
+                                    x-text="lang === 'zh' ? '请求 USB 权限' : 'Request Permission'"></span>
                                 <span x-show="isWebUsbConnecting"
                                     x-text="lang === 'zh' ? '正在连接...' : 'Connecting...'"></span>
-                                <span x-show="webUsbDevice"
-                                    x-text="webUsbDevice ? webUsbDevice.productName : ''"></span>
+                                <span x-show="webUsbDevice" x-text="webUsbDevice.productName"></span>
                             </button>
                         </div>
 
-                        <!-- Debugger Selector -->
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                            <select class="select-field" x-model="config.debugger" style="flex: 1; height: 38px;">
-                                <option value="1">Segger J-Link</option>
-                                <option value="2">ST-Link V2/V3</option>
-                                <option value="3">DAPLink / CMSIS-DAP</option>
-                                <option value="4">J-Link (OpenOCD)</option>
-                            </select>
-                            <div x-show="debuggerConnected"
-                                style="display: flex; align-items: center; gap: 4px; padding: 6px 10px; background: rgba(48,209,88,0.15); border-radius: 6px; font-size: 11px; color: var(--accent-green); white-space: nowrap; height: 38px;">
-                                <svg fill="currentColor" viewBox="0 0 20 20" width="12" height="12">
-                                    <path fill-rule="evenodd"
-                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                        clip-rule="evenodd" />
-                                </svg>
-                                <span x-text="lang === 'zh' ? '已就绪' : 'Ready'"></span>
-                            </div>
-                        </div>
-
-                        <!-- Intelligent Sensing Card -->
-                        <div x-show="detectedChip"
+                        <!-- Intelligent Sensing Card (Local Mode Only) -->
+                        <div x-show="workMode === 'local' && detectedChip"
                             style="display: flex; flex-direction: column; gap: 5px; padding: 10px 12px; background: rgba(48,209,88,0.1); border: 1px solid rgba(48,209,88,0.2); border-radius: 10px; margin-bottom: 6px;">
                             <div style="display: flex; align-items: center; gap: 6px;">
                                 <span
@@ -1644,8 +1720,10 @@
                             </div>
                         </div>
 
-                        <!-- Manual selection fallback -->
-                        <div x-show="!detectedChip">
+                        <!-- Manual selection fallback (Shown if no chip detected OR in Cloud Mode) -->
+                        <div x-show="workMode === 'cloud' || !detectedChip">
+                            <label class="input-label" style="display:block; margin-bottom:6px;"
+                                x-show="workMode === 'cloud'" x-text="lang === 'zh' ? '选择目标芯片' : 'Target Chip'"></label>
                             <div class="chip-grid" style="margin-bottom: 8px;">
                                 <button class="chip-btn" :class="config.chip === '1' ? 'active' : ''"
                                     @click="config.chip = '1'">51822</button>
@@ -1655,6 +1733,7 @@
                                     @click="config.chip = '3'">5281x</button>
                             </div>
                             <div style="font-size: 10px; color: var(--text-tertiary); opacity: 0.8; padding-left: 2px;"
+                                x-show="workMode === 'local'"
                                 x-text="lang === 'zh' ? '自动感知优先；受保护芯片请手动选择。' : 'Auto-sensing priority. Manual for protected.'">
                             </div>
                         </div>
@@ -2157,6 +2236,7 @@
                     interval_step: 10,
                     autoflash: false
                 },
+                webUsbDriver: 'stlink', // stlink or daplink
                 status: 'Ready',
                 isFlashing: false,
                 lastNotification: null,
@@ -2601,12 +2681,10 @@
                         this.addLog(`[WebUSB] Binary prepared: ${binaryData.length} bytes`, 'info');
 
                         // 2. Determine driver
-                        if (this.webUsbDevice.vendorId === 0x0d28) {
+                        if (this.webUsbDriver === 'daplink') {
                             await this.flashWithDAP(binaryData);
-                        } else if (this.webUsbDevice.vendorId === 0x0483) {
-                            await this.flashWithSTLink(binaryData);
                         } else {
-                            throw new Error("Unsupported WebUSB debugger.");
+                            await this.flashWithSTLink(binaryData);
                         }
 
                         this.addLog('[WebUSB] Flash successful!', 'success');
@@ -2672,19 +2750,53 @@
 
                 async flashWithDAP(data) {
                     this.addLog('[DAP] Initializing CMSIS-DAP...', 'info');
+                    // DAPjs usage:
                     const transport = new DAPjs.WebUSB(this.webUsbDevice);
                     const target = new DAPjs.CortexM(transport);
 
                     await target.connect();
                     this.addLog('[DAP] Target connected. Erasing...', 'info');
-                    // Simplified erase/program sequence (depends on specific chip)
-                    // In a real implementation, you'd use a Flash target specifically for nRF5x
-                    // For demo, we simulate progress
-                    for (let i = 0; i <= 100; i += 20) {
-                        this.webUsbProgress = i;
-                        await new Promise(r => setTimeout(r, 200));
+
+                    const NVMC_BASE = 0x4001E000;
+                    const NVMC_CONFIG = NVMC_BASE + 0x504;
+                    const NVMC_ERASEALL = NVMC_BASE + 0x50C;
+                    const NVMC_READY = NVMC_BASE + 0x400;
+
+                    // 1. Erase All
+                    await target.writeMem32(NVMC_CONFIG, 2); // ERASE mode
+                    await target.writeMem32(NVMC_ERASEALL, 1);
+
+                    // Wait for ready
+                    let ready = 0;
+                    while ((ready & 1) === 0) {
+                        ready = await target.readMem32(NVMC_READY);
+                        await new Promise(r => setTimeout(r, 50));
                     }
+                    this.addLog('[DAP] Chip erased.', 'success');
+
+                    // 2. Program
+                    this.addLog('[DAP] Programming...', 'info');
+                    await target.writeMem32(NVMC_CONFIG, 1); // WRITE mode
+
+                    const flashBase = 0x00000000;
+                    const chunkSize = 1024; // DAPLink can handle larger blocks
+
+                    for (let offset = 0; offset < data.length; offset += chunkSize) {
+                        const chunk = data.slice(offset, offset + chunkSize);
+                        // DAPjs writeBlock equivalent (writeMem behaves like block write for arrays)
+                        await target.writeBlock(flashBase + offset, chunk);
+
+                        this.webUsbProgress = Math.round((offset / data.length) * 100);
+                        if (offset % 4096 === 0) {
+                            this.addLog(`[DAP] Progress: ${this.webUsbProgress}%`, 'info');
+                        }
+                    }
+
+                    await target.writeMem32(NVMC_CONFIG, 0); // READ mode
+                    this.addLog('[DAP] Resetting...', 'info');
+                    await target.reset();
                     await target.disconnect();
+                    this.webUsbProgress = 100;
                 },
 
                 parseHex(hexString) {
