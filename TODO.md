@@ -23,3 +23,13 @@
   - 需求：
     - 硬件需板载加速度计 (如 LIS3DH)。
     - 需实现 I2C 驱动与 GPIO 中断唤醒逻辑。
+
+- [ ] **Phase 5: 独立桌面客户端体验 (Future)**
+  - 目标：将现有的 Python 脚本 + 网页体验打包为独立 App (Mac .app / Win .exe)。
+  - 优势：
+    - 用户仅需下载运行一个文件，无需安装 Python 环境。
+    - 启动时自动打开本地浏览器。
+    - 支持将 Hex 文件拖拽到窗口刷机。
+    - 结合 "Local Bridge" 模式，彻底解决 WebUSB 兼容性问题。
+  - 工具：PyInstaller, Electron (Optional), webview.
+
