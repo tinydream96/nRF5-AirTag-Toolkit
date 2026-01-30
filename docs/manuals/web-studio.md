@@ -46,8 +46,8 @@ Web Studio 是本项目的核心工具，提供了业界最优雅的刷机体验
 
 #### DCDC 选项
 
-- 仅支持 DCDC 的硬件才能启用（Web Studio 会根据检测结果给出建议）
-- nRF52 系列大多支持，nRF51 系列通常不支持
+- 仅支持 DCDC 的硬件才能启用（默认为禁用，以确保最佳兼容性）
+- nRF52 系列官方开发板通常支持，但很多第三方模块仅支持 LDO
 - 若不确定，建议禁用（使用 LDO 更兼容）
 
 ---
@@ -145,12 +145,12 @@ Web Studio 使用 Session ID 进行隔离，每次刷写的临时文件存放在
 #### "Chip Disconnected"
 
 - 检查 SWD 接线（SWDIO, SWCLK, GND）
-- 参考[硬件连接手册](./05-硬件连接手册.md)
+- 参考[硬件连接手册](../hardware/connection.md)
 
 #### "Chip Protected"
 
 - 点击"开始刷机"，系统会自动执行 Mass Erase
-- 或参考[硬件连接手册 - 芯片保护解除](./05-硬件连接手册.md#芯片保护解除)
+- 或参考[硬件连接手册 - 芯片保护解除](../hardware/connection.md#芯片保护解除)
 
 #### "Build Failed"
 
@@ -161,5 +161,5 @@ Web Studio 使用 Session ID 进行隔离，每次刷写的临时文件存放在
 
 > 相关文档:
 >
-> - [快速开始](./01-快速开始.md)
-> - [命令行刷写工具](./04-命令行刷写工具.md)
+> - [快速开始](../getting-started/index.md)
+> - [命令行刷写工具](./cli-tool.md)

@@ -239,5 +239,5 @@ openocd -f interface/stlink.cfg -f target/nrf52.cfg -c "init; halt; nrf5 mass_er
 
 > 相关文档:
 >
-> - [快速开始](./01-快速开始.md)
-> - [批量生产指南](./07-批量生产指南.md)
+> - [快速开始](../getting-started/index.md)
+> - [批量生产指南](../advanced/production.md)

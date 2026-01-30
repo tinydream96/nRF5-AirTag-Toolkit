@@ -70,7 +70,7 @@ python3 nrf5_airtag_web.py
 
 ### 第二步：进入智控中心
 
-浏览器访问: `http://127.0.0.1:5001`
+浏览器访问: `http://127.0.0.1:52810`
 
 ### 第三步：见证奇迹
 
@@ -85,17 +85,20 @@ python3 nrf5_airtag_web.py
 > 虽然这个工具已经极度简化，但我们依然提供了一套完整的知识库。
 
 **🚀 快速开始**
-* [5 分钟快速开始](docs/01-快速开始.md) - 使用 Web Studio 立即上手  
-* [环境安装](docs/02-环境安装.md) - 安装工具链、SDK 和驱动
+
+* [5 分钟快速开始](docs/getting-started/index.md) - 使用 Web Studio 立即上手  
+* [环境安装](docs/getting-started/environment.md) - 安装工具链、SDK 和驱动
 
 **📖 深入指南**
-* [Web Studio 完全指南](docs/03-Web-Studio-完全指南.md) - 掌握 Web 界面所有功能
-* [命令行刷写工具](docs/04-命令行刷写工具.md) - 高级用户的命令行工具
-* [硬件连接手册](docs/05-硬件连接手册.md) - 接线图与芯片救砖
+
+* [Web Studio 完全指南](docs/manuals/web-studio.md) - 掌握 Web 界面所有功能
+* [命令行刷写工具](docs/manuals/cli-tool.md) - 高级用户的命令行工具
+* [硬件连接手册](docs/hardware/connection.md) - 接线图与芯片救砖
 
 **🔬 高级主题**
-* [动态密钥技术详解](docs/06-动态密钥技术详解.md) - 技术原理深度解析
-* [批量生产指南](docs/07-批量生产指南.md) - 大规模生产工作流
+
+* [动态密钥技术详解](docs/advanced/dynamic-keys.md) - 技术原理深度解析
+* [批量生产指南](docs/advanced/production.md) - 大规模生产工作流
 
 ---
 

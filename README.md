@@ -70,7 +70,7 @@ python3 nrf5_airtag_web.py
 
 ### Step 2: Enter the Control Center
 
-Navigate to: `http://127.0.0.1:5001`
+Navigate to: `http://127.0.0.1:52810`
 
 ### Step 3: Witness the Magic
 
@@ -85,17 +85,20 @@ Watch the elegant progress bar—system detection, firmware patching, and key in
 > Although this tool is extremely simplified, we still provide a comprehensive knowledge base.
 
 **🚀 Quick Start**
-* [5-Minute Quick Start](docs/01-快速开始.md) - Get started with Web Studio  
-* [Environment Setup](docs/02-环境安装.md) - Install tools, SDK, and drivers
+
+* [5-Min Quick Start](docs/getting-started/index.md) - Get started with Web Studio immediately
+* [Environment Setup](docs/getting-started/environment.md) - Install toolchain, SDK and drivers
 
 **📖 In-Depth Guides**
-* [Web Studio Complete Guide](docs/03-Web-Studio-完全指南.md) - Master the web interface
-* [CLI Flashing Tool](docs/04-命令行刷写工具.md) - Command-line power users
-* [Hardware Connection Manual](docs/05-硬件连接手册.md) - Wiring diagrams & recovery
+
+* [Web Studio Guide](docs/manuals/web-studio.md) - Master all Web interface features
+* [CLI Flash Tool](docs/manuals/cli-tool.md) - Command line tool for advanced users
+* [Hardware Connection](docs/hardware/connection.md) - Wiring diagrams and unbricking
 
 **🔬 Advanced Topics**
-* [Dynamic Keys Explained](docs/06-动态密钥技术详解.md) - Technical deep dive
-* [Batch Production Guide](docs/07-批量生产指南.md) - Mass production workflows
+
+* [Dynamic Keys Tech](docs/advanced/dynamic-keys.md) - Deep dive into technical principles
+* [Mass Production](docs/advanced/production.md) - Large scale production workflows
 
 ---
 

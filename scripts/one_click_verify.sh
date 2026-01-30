@@ -172,9 +172,9 @@ check_project_structure() {
     
     # 检查文档目录
     check_directory "docs" "文档目录"
-    check_file "docs/README-文档导航.md" "文档导航"
-    check_file "docs/01-环境安装指南.md" "环境安装指南"
-    check_file "docs/05-快速参考手册.md" "快速参考手册"
+    check_file "docs/README.md" "文档导航"
+    check_file "docs/getting-started/environment.md" "环境安装指南"
+    check_file "docs/manuals/web-studio.md" "Web Studio 指南"
     
     # 检查脚本目录
     check_directory "scripts" "脚本目录" || check_file "setup_nrf52810.sh" "环境检查脚本"
@@ -293,11 +293,11 @@ show_next_steps() {
         log "1. ${BLUE}编译和刷写固件:${NC}"
         log "   ./scripts/compile_and_flash_2s.sh"
         log ""
-        log "2. ${BLUE}查看快速参考:${NC}"
-        log "   cat docs/05-快速参考手册.md"
+        log "2. ${BLUE}查看 Web Studio TODO:${NC}"
+        log "   cat docs/manuals/web-studio.md"
         log ""
         log "3. ${BLUE}阅读完整文档:${NC}"
-        log "   cat docs/README-文档导航.md"
+        log "   cat docs/README.md"
         
     else
         log "${YELLOW}🔧 建议的修复步骤:${NC}"
@@ -315,9 +315,9 @@ show_next_steps() {
     
     log ""
     log "${PURPLE}📚 获取帮助:${NC}"
-    log "   - 查看文档: docs/README-文档导航.md"
-    log "   - 快速参考: docs/05-快速参考手册.md"
-    log "   - 故障排除: docs/04-硬件连接与刷写.md"
+    log "   - 查看文档: docs/README.md"
+    log "   - Web Studio: docs/manuals/web-studio.md"
+    log "   - 故障排除: docs/hardware/connection.md"
 }
 
 # 主函数
