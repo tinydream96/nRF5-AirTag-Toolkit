@@ -1677,14 +1677,8 @@
 
                         <!-- 2. CLOUD MODE HARDWARE (WebUSB) -->
                         <div x-show="workMode === 'cloud'">
-                            <label class="input-label" style="margin-bottom:6px; display:block;"
-                                x-text="lang === 'zh' ? 'WebUSB 驱动类型' : 'WebUSB Driver'"></label>
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                                <select class="select-field" x-model="webUsbDriver" style="flex: 1; height: 38px;">
-                                    <option value="stlink">ST-Link V2/V3 (stlink.js)</option>
-                                    <option value="daplink">DAPLink / CMSIS-DAP (dap.js)</option>
-                                </select>
-                            </div>
+                            <!-- ST-Link removed as per user request -->
+                            <input type="hidden" x-model="webUsbDriver">
 
                             <div class="section-header" style="margin-top:15px; margin-bottom:10px;">
                                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
@@ -2045,6 +2039,16 @@
                             </svg>
                             <span x-text="lang === 'zh' ? '使用本地服务刷写' : 'Flash via Local Service'"></span>
                         </button>
+                        <!-- Continue Next Device Button (show on success) -->
+                        <button class="reset-btn" x-show="currentStep > 3 && !isFlashing"
+                            style="background: rgba(94,92,230,0.15); color: #5E5CE6; border: 1px solid rgba(94,92,230,0.3); margin-left: auto;"
+                            @click="startNextDevice()">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span x-text="lang === 'zh' ? '继续下一个设备' : 'Next Device'"></span>
+                        </button>
                     </div>
 
                     <!-- Offline Download Button (Prominent) -->
@@ -2149,7 +2153,16 @@
                             </svg>
                             <span class="history-title" x-text="t('historyTitle')">History</span>
                         </div>
-                        <span class="history-count" x-text="historyFiles.length">0</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="history-count" x-text="historyFiles.length">0</span>
+                            <button class="toolbar-icon-btn danger" x-show="historyFiles.length > 0"
+                                @click="confirmClearAll()" title="Clear All History" style="padding: 4px;">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Toolbar -->
@@ -2236,7 +2249,17 @@
                     interval_step: 10,
                     autoflash: false
                 },
-                webUsbDriver: 'stlink', // stlink or daplink
+                webUsbDriver: 'daplink',
+                sessionId: (() => {
+                    // Try to get existing sessionId from localStorage
+                    let sid = localStorage.getItem('nrf5_session_id');
+                    if (!sid) {
+                        // Generate new sessionId if not found
+                        sid = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                        localStorage.setItem('nrf5_session_id', sid);
+                    }
+                    return sid;
+                })(),
                 status: 'Ready',
                 isFlashing: false,
                 lastNotification: null,
@@ -2256,9 +2279,8 @@
                 webUsbDevice: null,
                 webUsbProgress: 0,
                 isWebUsbConnecting: false,
-                // Step progress state
-                currentStep: 0,  // 0=idle, 1=debugger, 2=chip, 3=build, 4=flash, 5=done
-                errorStep: 0,    // Which step had an error
+                currentStep: 0,
+                errorStep: 0,
                 statusMessage: '',
                 statusHint: '',
                 statusBoxClass: 'info',
@@ -2406,7 +2428,6 @@
                 },
 
                 resetState() {
-                    // Reset all step/status state to allow retry
                     this.currentStep = 0;
                     this.errorStep = 0;
                     this.statusMessage = '';
@@ -2427,15 +2448,9 @@
                 },
 
                 updateStepFromStatus(status) {
-                    // Map backend status messages to step numbers
                     const s = status.toLowerCase();
+                    if (!s.includes('error')) this.errorStep = 0;
 
-                    // Reset error state unless it's an error status
-                    if (!s.includes('error')) {
-                        this.errorStep = 0;
-                    }
-
-                    // Step 1: Debugger
                     if (s.includes('checking debugger') || s.includes('debugger:') || s.startsWith('debugger')) {
                         this.currentStep = 1;
                         if (s.includes('j-link') || s.includes('jlink')) {
@@ -2448,10 +2463,8 @@
                         this.statusHint = this.lang === 'zh' ? '请确保调试器已连接到电脑' : 'Make sure debugger is connected';
                         this.statusBoxClass = 'working';
                     }
-                    // Step 2: Chip
                     else if (s.includes('checking chip') || s.includes('chip:') || s.startsWith('chip')) {
                         this.currentStep = 2;
-                        // Extract chip model from status
                         if (s.includes('nrf51822')) {
                             this.detectedChip = 'nRF51822';
                             this.statusMessage = this.lang === 'zh' ? '芯片: nRF51822 ✓' : 'Chip: nRF51822 ✓';
@@ -2594,7 +2607,10 @@
                         const res = await fetch('/api/generate', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(this.config)
+                            body: JSON.stringify({
+                                ...this.config,
+                                session_id: this.sessionId // Pass isolation ID
+                            })
                         });
                         const data = await res.json();
 
@@ -2612,6 +2628,9 @@
                             // For demo purposes, we log the first few lines of HEX
                             this.addLog(`[Cloud] HEX Data received (${data.hex.length} bytes)`, 'info');
                             this.isFlashing = false;
+
+                            // Auto-refresh history to show newly generated device
+                            this.fetchHistory();
                         } else {
                             throw new Error(data.error);
                         }
@@ -2856,7 +2875,7 @@
 
                 async poll() {
                     try {
-                        const res = await fetch('/api/logs');
+                        const res = await fetch(`/api/logs?session_id=${this.sessionId}&start=${this.logs.length}`);
                         const data = await res.json();
 
                         if (data.logs.length > this.logs.length) {
@@ -2960,7 +2979,7 @@
 
                 async fetchHistory() {
                     try {
-                        const res = await fetch('/api/history');
+                        const res = await fetch(`/api/history?session_id=${this.sessionId}`);
                         const data = await res.json();
                         this.historyFiles = data.files;
                         const fileSet = new Set(this.historyFiles.map(f => f.filename));
@@ -2983,6 +3002,24 @@
 
                 async downloadSelected() {
                     if (this.selectedFiles.length === 0) return;
+
+                    // If only one file selected, download directly
+                    if (this.selectedFiles.length === 1) {
+                        const file = this.historyFiles.find(f => f.filename === this.selectedFiles[0]);
+                        if (file) {
+                            // Route based on source
+                            let url;
+                            if (file.source === 'session' && file.session_id) {
+                                url = `/api/session_download/${file.session_id}/${file.filename}`;
+                            } else {
+                                url = `/api/download/${file.filename}`;
+                            }
+                            window.location.href = url;
+                            return;
+                        }
+                    }
+
+                    // Multiple files: create archive
                     try {
                         const res = await fetch('/api/history/archive', {
                             method: 'POST',
@@ -2995,6 +3032,68 @@
                         }
                     } catch (e) {
                         this.addLog('Archive failed', 'error');
+                    }
+                },
+
+                startNextDevice() {
+                    // Increment the start number
+                    this.config.start_num = String(parseInt(this.config.start_num || 1) + 1);
+
+                    // Reset UI state
+                    this.isFlashing = false;
+                    this.currentStep = 0;
+                    this.errorStep = 0;
+                    this.statusMessage = '';
+                    this.statusHint = '';
+                    this.statusBoxClass = 'info';
+                    this.status = 'Ready';
+                    this.downloadUrl = null;
+
+                    // Clear logs
+                    this.logs = [];
+
+                    // DON'T regenerate sessionId - keep same batch/session!
+                    // This allows history to accumulate: TEST01, TEST02, TEST03...
+                    // this.sessionId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                    // localStorage.setItem('nrf5_session_id', this.sessionId);
+
+                    // Refresh history to show all devices in this batch
+                    this.fetchHistory();
+                },
+
+                confirmClearAll() {
+                    if (this.historyFiles.length === 0) return;
+                    if (confirm(`确定要清除所有历史记录吗？这将删除 ${this.historyFiles.length} 个文件，操作不可恢复。\n\nClear all ${this.historyFiles.length} history files? This cannot be undone.`)) {
+                        this.clearAllHistory();
+                    }
+                },
+
+                async clearAllHistory() {
+                    try {
+                        // Select all files and delete them
+                        const files = this.historyFiles.map(f => ({
+                            filename: f.filename,
+                            source: f.source,
+                            session_id: f.session_id
+                        }));
+
+                        const res = await fetch('/api/history/delete', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ files })
+                        });
+                        const data = await res.json();
+
+                        if (data.success) {
+                            this.addLog(`已清除 ${data.deleted.length} 个历史文件`, 'success');
+                            this.selectedFiles = [];
+                            await this.fetchHistory();
+                        } else {
+                            this.addLog('清除失败', 'error');
+                        }
+                    } catch (e) {
+                        console.error('Clear all error:', e);
+                        this.addLog('清除失败', 'error');
                     }
                 },
 

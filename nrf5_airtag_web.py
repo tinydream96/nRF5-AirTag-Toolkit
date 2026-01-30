@@ -15,19 +15,27 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # --- Global State ---
 STATE = {
-    "is_flashing": False,
-    "current_device": "",
-    "logs": [],
+    "logs": {},  # session_id -> [log_list]
+    "session_state": {},  # session_id -> {"is_flashing": bool, ...}
     "last_log_index": 0,
     "status_message": "Ready",
-    "last_generated_file": None,
     "stop_signal": False
 }
 
+# --- Configuration ---
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-LOG_FILE = os.path.join(PROJECT_ROOT, "device_flash_log_web.txt")
+STATIC_FOLDER = os.path.join(PROJECT_ROOT, "templates")
 CONFIG_DIR = os.path.join(PROJECT_ROOT, "config")
+SESSIONS_DIR = os.path.join(PROJECT_ROOT, "user_sessions")
 
+# Ensure directories exist
+for d in [CONFIG_DIR, SESSIONS_DIR]:
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+# Global Build Lock to prevent race conditions during 'make'
+BUILD_LOCK = threading.Lock()
+LOG_FILE = os.path.join(PROJECT_ROOT, "device_flash_log_web.txt")
 # --- Chip Config Map (NEW) ---
 CHIP_MAP = {
     "1": {
@@ -87,8 +95,8 @@ CHIP_NAME_TO_KEY = {
     "nRF52811": "4",
 }
 
-def log(msg, level="info"):
-    """Log to memory and file"""
+def log(msg, level="info", session_id=None):
+    """Log to memory and file, optionally isolated by session"""
     timestamp = datetime.now().strftime('%H:%M:%S')
     
     # CSS classes for frontend
@@ -104,13 +112,43 @@ def log(msg, level="info"):
         "msg": msg,
         "class": css_class
     }
-    STATE["logs"].append(entry)
     
-    # File logging
-    with open(LOG_FILE, "a") as f:
-        f.write(f"[{timestamp}] [{level.upper()}] {msg}\n")
-        
+    # Session isolation
+    if session_id:
+        if session_id not in STATE["logs"]:
+            STATE["logs"][session_id] = []
+        STATE["logs"][session_id].append(entry)
+    else:
+        # Fallback for truly global/system logs
+        if "global" not in STATE["logs"]:
+            STATE["logs"]["global"] = []
+        STATE["logs"]["global"].append(entry)
+
+    # console preview
     print(f"[{timestamp}] {msg}")
+    
+    # file persistence
+    try:
+        with open(LOG_FILE, "a", encoding="utf-8") as f:
+            f.write(f"[{timestamp}] [{level.upper()}] {msg}\n")
+    except:
+        pass
+
+# Session State Helpers
+def get_session_state(session_id, key, default=None):
+    """Get a value from session state"""
+    if not session_id:
+        return default
+    session_state = STATE["session_state"].get(session_id, {})
+    return session_state.get(key, default)
+
+def set_session_state(session_id, key, value):
+    """Set a value in session state"""
+    if not session_id:
+        return
+    if session_id not in STATE["session_state"]:
+        STATE["session_state"][session_id] = {}
+    STATE["session_state"][session_id][key] = value
 
 def run_command(cmd, cwd=None, timeout=None):
     """Run shell command and capture output (stdout + stderr combined)"""
@@ -379,31 +417,50 @@ def generate_firmware(config, chip_cfg=None):
     Core logic to generate a patched firmware bundle.
     Returns: (success, result_dict, error_msg)
     """
-    # Logic: Total 6 chars. 
-    prefix = config['prefix'].upper()
-    start_num = int(config['start_num'])
-    padding = 6 - len(prefix)
-    if padding < 1: padding = 1 # Safety minimum
+    # --- 1. Name Generation (with timestamp for uniqueness) ---
+    prefix = config.get('prefix', 'DEV')
+    start_num = int(config.get('start_num', 1))
+    padding = int(config.get('padding', 2))
     
-    device_name = f"{prefix}{start_num:0{padding}d}"
+    # Generate base device name
+    base_name = f"{prefix}{start_num:0{padding}d}"
+    
+    # Add timestamp for uniqueness (format: YYYYMMDD_HHMMSS)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    device_name = f"{base_name}_{timestamp}"
     
     # Get initial Chip Config
     if not chip_cfg:
         chip_id = config.get('chip', '1')
         chip_cfg = CHIP_MAP.get(chip_id)
         
-    if not chip_cfg:
-        return False, None, f"Invalid Chip ID: {config.get('chip')}"
+        if not chip_cfg:
+            return False, None, f"Invalid Chip ID: {config.get('chip')}"
+
+    # Determine Output Directory (Session Isolation)
+    session_id = config.get('session_id')
+    if session_id:
+        # Isolated Session Directory - CREATE but DON'T DELETE existing files!
+        output_dir = os.path.join(SESSIONS_DIR, session_id)
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+    else:
+        # Fallback to global config dir (legacy behavior)
+        output_dir = CONFIG_DIR
 
     files_to_zip = [] # List of (abis_path, arcname)
     
     try:
         # --- 1. Prepare Paths ---
+        # Seed dir remains global/persistent as it is based on device name
         seed_dir = os.path.join(PROJECT_ROOT, "seeds", device_name)
-        make_dir = os.path.join(PROJECT_ROOT, chip_cfg['make_dir'])
-        build_dir = os.path.join(make_dir, "_build")
         
-        # --- 2. Seed/Key Gen ---
+        make_dir = os.path.join(PROJECT_ROOT, chip_cfg['make_dir'])
+        # Global build artifacts location
+        global_build_hex = os.path.join(make_dir, "_build", f"{chip_cfg['build_name']}.hex")
+        global_build_bin = os.path.join(make_dir, "_build", f"{chip_cfg['build_name']}.bin")
+
+        # --- 2. Seed/Key Gen (Output to Session Dir) ---
         seed_bin_file = None
         key_file_path = None
         
@@ -414,7 +471,7 @@ def generate_firmware(config, chip_cfg=None):
             
             # Generate Seed
             seed_hex = binascii.b2a_hex(os.urandom(32)).decode()
-            log(f"Generated Seed: {seed_hex} | 已生成随机种子", "accent")
+            log(f"Generated Seed: {seed_hex} | 已生成随机种子", "accent", session_id=session_id)
             
             with open(seed_hex_file, "w") as f: f.write(seed_hex)
             with open(seed_bin_file, "wb") as f: f.write(binascii.unhexlify(seed_hex))
@@ -422,28 +479,30 @@ def generate_firmware(config, chip_cfg=None):
             files_to_zip.append((seed_hex_file, f"seed_{device_name}.hex"))
             files_to_zip.append((seed_bin_file, f"seed_{device_name}.bin"))
             
-            log("Generating Offline Keys...", "info")
+            log("Generating Offline Keys...", "info", session_id=session_id)
             gen_script = os.path.join(PROJECT_ROOT, "heystack-nrf5x/tools/generate_keys_from_seed.py")
             
+            
             # Use sys.executable for compatibility
-            cmd = [sys.executable, gen_script, "-s", seed_hex, "-n", "200", "-p", device_name, "-o", os.path.join(PROJECT_ROOT, "config")]
+            # Output keys to session directory
+            cmd = [sys.executable, gen_script, "-s", seed_hex, "-n", "200", "-p", device_name, "-o", output_dir]
             success, output = run_command(cmd)
             
             if success:
-                json_file = os.path.join(PROJECT_ROOT, "config", f"{device_name}_devices.json")
+                json_file = os.path.join(output_dir, f"{device_name}_devices.json")
                 if os.path.exists(json_file):
                     files_to_zip.append((json_file, f"{device_name}_devices.json"))
-                    log("Offline keys generated. | 离线密钥对已生成", "info")
+                log("Offline keys generated. | 离线密钥对已生成", "info", session_id=session_id)
             else:
-                 log(f"Offline key gen warning: {output}", "warning")
+                 log(f"Offline key gen warning: {output}", "warning", session_id=session_id)
                 
         else: # Static
             key_filename = f"{device_name}_keyfile"
-            key_file_path = os.path.join(PROJECT_ROOT, "config", key_filename)
-            json_file = os.path.join(PROJECT_ROOT, "config", f"{device_name}_devices.json")
+            key_file_path = os.path.join(CONFIG_DIR, key_filename) # Check in global config dir first
+            json_file = os.path.join(CONFIG_DIR, f"{device_name}_devices.json") # Check in global config dir first
             
             if not os.path.exists(key_file_path):
-                log(f"Keyfile missing. Generating...", "warning")
+                log(f"Keyfile missing. Generating...", "warning", session_id=session_id)
                 # Auto-gen logic
                 temp_dir = os.path.join(PROJECT_ROOT, "temp_keys_web")
                 if not os.path.exists(temp_dir): os.makedirs(temp_dir)
@@ -452,7 +511,7 @@ def generate_firmware(config, chip_cfg=None):
                 # Ensure output path ends with slash
                 out_dir = temp_dir if temp_dir.endswith(os.sep) else temp_dir + os.sep
                 cmd = [sys.executable, gen_script, "-n", str(key_count), "-p", device_name, "-o", out_dir]
-                log(f"Generator Command: {' '.join(cmd)}", "info")
+                log(f"Generator Command: {' '.join(cmd)}", "info", session_id=session_id)
                 success, output = run_command(cmd)
                 if success:
                     # Verify file exists before moving
@@ -460,26 +519,29 @@ def generate_firmware(config, chip_cfg=None):
                     js_path = os.path.join(temp_dir, f"{device_name}_devices.json")
                     
                     if os.path.exists(kf_path):
-                        shutil.move(kf_path, os.path.join(PROJECT_ROOT, "config"))
+                        shutil.move(kf_path, output_dir)
                         if os.path.exists(js_path):
-                            shutil.move(js_path, os.path.join(PROJECT_ROOT, "config"))
+                            shutil.move(js_path, output_dir)
                         shutil.rmtree(temp_dir)
-                        log("Keyfile generated and moved to config. | 密钥文件已就绪", "success")
+                        
+                        # Update paths to new location
+                        key_file_path = os.path.join(output_dir, key_filename)
+                        json_file = os.path.join(output_dir, f"{device_name}_devices.json")
+                        
+                        log("Keyfile generated and prepared. | 密钥文件已就绪", "success", session_id=session_id)
                     else:
                         return False, None, f"Generator reported success but {device_name}_keyfile not found in {temp_dir}"
                 else:
                     return False, None, f"Keygen failed: {output}"
             
             # Prepare Static Zip
+            # Ensure json_file points to the session directory if it was moved or generated there
+            json_file = os.path.join(output_dir, f"{device_name}_devices.json")
             if os.path.exists(json_file):
                 files_to_zip.append((json_file, f"{device_name}_devices.json"))
 
-        # --- Create Zip Bundle ---
-                log(f"Zip creation failed: {e}", "warning")
-
-
         # --- 3. Build ---
-        log(f"Compiling firmware for {chip_cfg['name']}... | 正在编译固件...", "info")
+        log(f"Compiling firmware for {chip_cfg['name']}... | 正在编译固件...", "info", session_id=session_id)
         run_command(["make", "-C", make_dir, "clean"])
         
         interval = int(config['base_interval']) + (int(config['start_num']) * int(config['interval_step']))
@@ -493,18 +555,38 @@ def generate_firmware(config, chip_cfg=None):
         
         # Use dynamic build name
         cmd = ["make", "-C", make_dir, chip_cfg['build_name']] + flags
-        success, output = run_command(cmd)
-        if not success: return False, None, f"Make failed: {output}"
-        log("Compilation success. | 固件编译完成", "success")
         
-        # --- 4. Patch ---
-        log("Patching binary... | 正在注入引导配置...", "info")
-        orig_hex = os.path.join(build_dir, f"{chip_cfg['build_name']}.hex")
-        orig_bin = os.path.join(build_dir, f"{chip_cfg['build_name']}.bin")
-        patch_bin = os.path.join(build_dir, f"{chip_cfg['build_name']}_patched.bin")
-        patch_hex = os.path.join(build_dir, f"{chip_cfg['build_name']}_patched.hex")
+        # --- CRITICAL SECTION: COMPILE ---
+        # We must lock the build process because 'make' uses a shared _build directory.
+        log("Waiting for build lock... | 等待编译队列...", "info", session_id=session_id)
+        with BUILD_LOCK:
+            log(f"Compiling firmware for {chip_cfg['name']}... | 正在编译固件...", "info", session_id=session_id)
+            run_command(["make", "-C", make_dir, "clean"])
+            success, output = run_command(cmd)
+            
+            if not success: return False, None, f"Make failed: {output}"
+            
+            # COPY artifacts to session directory immediately to release lock safely
+            if os.path.exists(global_build_hex):
+                shutil.copy(global_build_hex, os.path.join(output_dir, "raw_firmware.hex"))
+            if os.path.exists(global_build_bin):
+                shutil.copy(global_build_bin, os.path.join(output_dir, "raw_firmware.bin"))
+                
+        # --- END CRITICAL SECTION ---
+        log("Compilation success. | 固件编译完成", "success", session_id=session_id)
         
-        run_command(["arm-none-eabi-objcopy", "-I", "ihex", "-O", "binary", orig_hex, orig_bin])
+        # --- 4. Patch (Operate on Session Copy) ---
+        log("Patching binary... | 正在注入引导配置...", "info", session_id=session_id)
+        
+        # Paths in Session Dir
+        orig_hex = os.path.join(output_dir, "raw_firmware.hex")
+        orig_bin = os.path.join(output_dir, "raw_firmware.bin")
+        patch_bin = os.path.join(output_dir, f"{chip_cfg['build_name']}_patched.bin")
+        patch_hex = os.path.join(output_dir, f"{chip_cfg['build_name']}_patched.hex")
+        
+        # Ensure bin validation (sometimes make doesn't produce bin, so we make it from hex)
+        if not os.path.exists(orig_bin):
+             run_command(["arm-none-eabi-objcopy", "-I", "ihex", "-O", "binary", orig_hex, orig_bin])
         
         with open(orig_bin, "rb") as f: fw_data = bytearray(f.read())
         
@@ -524,7 +606,7 @@ def generate_firmware(config, chip_cfg=None):
         
         # Use dynamic offset
         run_command(["arm-none-eabi-objcopy", "-I", "binary", "-O", "ihex", "--change-addresses", chip_cfg['offset'], patch_bin, patch_hex])
-        log("Binary patched. | 配置注入完成", "success")
+        log("Binary patched. | 配置注入完成", "success", session_id=session_id)
 
         # --- 4. Final Bundle Packing (After Compilation) ---
         # Add the firmware hex to zip
@@ -532,6 +614,7 @@ def generate_firmware(config, chip_cfg=None):
         
         # Add SoftDevice hex to zip
         sd_path = os.path.join(PROJECT_ROOT, chip_cfg['sd_hex'])
+        log(f"Bundle created for session {session_id}", "info", session_id=session_id)
         if os.path.exists(sd_path):
             files_to_zip.append((sd_path, "softdevice.hex"))
 
@@ -600,36 +683,34 @@ if "%CHOICE%"=="1" (
 echo Done.
 pause
 """
-
-        # Write scripts to temp files then add to zip
-        sh_path = os.path.join(PROJECT_ROOT, "temp", "flash_linux.sh")
-        bat_path = os.path.join(PROJECT_ROOT, "temp", "flash_win.bat")
         
-        with open(sh_path, "w") as f: f.write(flash_sh_content)
-        os.chmod(sh_path, 0o755) # Make executable
-        with open(bat_path, "w") as f: f.write(flash_bat_content)
-        
-        files_to_zip.append((sh_path, "flash_linux.sh"))
-        files_to_zip.append((bat_path, "flash_win.bat"))
+        # Write scripts to session dir
+        with open(os.path.join(output_dir, "flash_linux.sh"), "w") as f:
+            f.write(flash_sh_content)
+        os.chmod(os.path.join(output_dir, "flash_linux.sh"), 0o755)
+            
+        with open(os.path.join(output_dir, "flash_win.bat"), "w") as f:
+            f.write(flash_bat_content)
+            
+        files_to_zip.append((os.path.join(output_dir, "flash_linux.sh"), "flash_linux.sh"))
+        files_to_zip.append((os.path.join(output_dir, "flash_win.bat"), "flash_win.bat"))
 
-        # Create ZIP Bundle NOW (including firmware and scripts)
-        bundle_file = None
-        if files_to_zip:
-            zip_name = f"{device_name}_bundle.zip"
-            zip_path = os.path.join(CONFIG_DIR, zip_name)
-            try:
-                with zipfile.ZipFile(zip_path, 'w') as zf:
-                    for fpath, arcname in files_to_zip:
-                        zf.write(fpath, arcname)
-                bundle_file = zip_name
-                log(f"Bundle created: {zip_name} | 资源包已打包", "info")
-            except Exception as e:
-                log(f"Zip creation failed: {e}", "warning")
+        # --- Create Zip Bundle (In Session Dir) ---
+        bundle_filename = f"{device_name}_bundle.zip"
+        bundle_path = os.path.join(output_dir, bundle_filename)
+        
+        with zipfile.ZipFile(bundle_path, 'w') as zf:
+            for file_path, arcname in files_to_zip:
+                if os.path.exists(file_path):
+                    zf.write(file_path, arcname)
+        
+        log(f"Bundle created: {bundle_filename} | 资源包已打包", "info")
 
         return True, {
             "device_name": device_name,
             "patch_hex": patch_hex,
-            "bundle_file": bundle_file,
+            "bundle_file": bundle_filename, # Return filename for download route
+            "bundle_path": bundle_path, # Return full path for internal use
             "chip_cfg": chip_cfg
         }, None
 
@@ -715,8 +796,7 @@ def flash_task(config):
         device_name = result["device_name"]
         patch_hex = result["patch_hex"]
         CHIP_CFG = result["chip_cfg"] # Update CHIP_CFG in case it was auto-detected
-        STATE["current_device"] = device_name
-        STATE["last_generated_file"] = result["bundle_file"]
+        # STATE["current_device"] and STATE["last_generated_file"] removed for session isolation
         
         autoflash = config.get('autoflash', False)
         if autoflash:
@@ -770,41 +850,103 @@ def api_stop():
 
 @app.route('/api/logs')
 def api_logs():
+    session_id = request.args.get('session_id', 'global')
     start = int(request.args.get('start', 0))
-    new_logs = STATE["logs"][start:]
+    
+    session_logs = STATE["logs"].get(session_id, [])
+    new_logs = session_logs[start:]
+    
+    # Get session-specific is_flashing status
+    session_state = STATE["session_state"].get(session_id, {})
+    is_flashing = session_state.get("is_flashing", False)
+    
     return jsonify({
         "logs": new_logs, 
-        "next_index": len(STATE["logs"]),
+        "next_index": len(session_logs),
         "status_message": STATE["status_message"],
-        "is_flashing": STATE["is_flashing"],
-        "device_name": STATE["current_device"],
-        "last_generated_file": STATE["last_generated_file"]
+        "is_flashing": is_flashing
     })
 
 @app.route('/api/download/<path:filename>')
 def api_download(filename):
-    """Serve generated files from config directory"""
+    """Serve global config files"""
     return send_from_directory(CONFIG_DIR, filename, as_attachment=True)
+
+@app.route('/api/session_download/<session_id>/<path:filename>')
+def api_session_download(session_id, filename):
+    """Serve session-isolated files"""
+    # Security: Ensure session_id is a simple alphanumeric string to prevent directory traversal
+    if not session_id.isalnum(): return "Invalid session ID", 400
+    
+    session_dir = os.path.join(SESSIONS_DIR, session_id)
+    return send_from_directory(session_dir, filename, as_attachment=True)
 
 @app.route('/api/history')
 def api_history():
-    """List all generated device bundles"""
+    """List generated device bundles - session-isolated by default, global if requested"""
+    session_id = request.args.get('session_id')  # Get session_id from query params
+    show_all = request.args.get('show_all', 'false').lower() == 'true'  # Optional: show all files
+    
     files = []
     try:
-        # scan for *_bundle.zip
-        pattern = os.path.join(CONFIG_DIR, "*_bundle.zip")
-        for fpath in glob.glob(pattern):
-            fname = os.path.basename(fpath)
-            # format: NAME_bundle.zip
-            name = fname.replace("_bundle.zip", "")
-            ts = os.path.getmtime(fpath)
-            time_str = datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-            files.append({
-                "name": name,
-                "filename": fname,
-                "time": time_str,
-                "ts": ts
-            })
+        if show_all:
+            # Global mode: show all files (legacy behavior)
+            # 1. Scan global CONFIG_DIR for legacy bundles
+            pattern = os.path.join(CONFIG_DIR, "*_bundle.zip")
+            for fpath in glob.glob(pattern):
+                fname = os.path.basename(fpath)
+                name = fname.replace("_bundle.zip", "")
+                ts = os.path.getmtime(fpath)
+                time_str = datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+                files.append({
+                    "name": name,
+                    "filename": fname,
+                    "time": time_str,
+                    "ts": ts,
+                    "source": "global"
+                })
+            
+            # 2. Scan all session directories
+            if os.path.exists(SESSIONS_DIR):
+                for sid in os.listdir(SESSIONS_DIR):
+                    session_path = os.path.join(SESSIONS_DIR, sid)
+                    if not os.path.isdir(session_path):
+                        continue
+                    
+                    session_pattern = os.path.join(session_path, "*_bundle.zip")
+                    for fpath in glob.glob(session_pattern):
+                        fname = os.path.basename(fpath)
+                        name = fname.replace("_bundle.zip", "")
+                        ts = os.path.getmtime(fpath)
+                        time_str = datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+                        files.append({
+                            "name": name,
+                            "filename": fname,
+                            "time": time_str,
+                            "ts": ts,
+                            "source": "session",
+                            "session_id": sid
+                        })
+        else:
+            # Session-isolated mode: show only this session's files
+            if session_id and os.path.exists(SESSIONS_DIR):
+                session_path = os.path.join(SESSIONS_DIR, session_id)
+                if os.path.isdir(session_path):
+                    session_pattern = os.path.join(session_path, "*_bundle.zip")
+                    for fpath in glob.glob(session_pattern):
+                        fname = os.path.basename(fpath)
+                        name = fname.replace("_bundle.zip", "")
+                        ts = os.path.getmtime(fpath)
+                        time_str = datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+                        files.append({
+                            "name": name,
+                            "filename": fname,
+                            "time": time_str,
+                            "ts": ts,
+                            "source": "session",
+                            "session_id": session_id
+                        })
+        
         # Sort by latest first
         files.sort(key=lambda x: x['ts'], reverse=True)
     except Exception as e:
@@ -813,19 +955,34 @@ def api_history():
 
 @app.route('/api/history/delete', methods=['POST'])
 def api_delete_history():
-    """Delete selected files"""
+    """Delete selected files (supports both global and session files)"""
     data = request.json
-    filenames = data.get('filenames', [])
+    files = data.get('files', [])  # Changed from 'filenames' to 'files' to include metadata
     deleted = []
     errors = []
     
-    for fname in filenames:
-        # Security check: filename must be simple and exist in CONFIG_DIR
+    for file_info in files:
+        # Support both old format (string) and new format (dict with source/session_id)
+        if isinstance(file_info, str):
+            fname = file_info
+            source = 'global'
+            session_id = None
+        else:
+            fname = file_info.get('filename')
+            source = file_info.get('source', 'global')
+            session_id = file_info.get('session_id')
+        
+        # Security check
         if os.sep in fname or '..' in fname or not fname.endswith('_bundle.zip'):
             errors.append(f"Invalid file: {fname}")
             continue
-            
-        fpath = os.path.join(CONFIG_DIR, fname)
+        
+        # Determine file path based on source
+        if source == 'session' and session_id:
+            fpath = os.path.join(SESSIONS_DIR, session_id, fname)
+        else:
+            fpath = os.path.join(CONFIG_DIR, fname)
+        
         try:
             if os.path.exists(fpath):
                 os.remove(fpath)
@@ -913,7 +1070,8 @@ def api_generate():
     Does NOT flash.
     """
     config = request.json
-    STATE["is_flashing"] = True # Mark busy during build
+    session_id = config.get('session_id')  # Get session_id from request
+    set_session_state(session_id, "is_flashing", True)  # Mark busy during build
     
     try:
         # Get chip config
@@ -932,18 +1090,27 @@ def api_generate():
         with open(hex_file, 'r') as f:
             hex_content = f.read()
             
+        # Determine Download URL base
+        sess_id = config.get('session_id')
+        filename = os.path.basename(result['bundle_file'])
+        
+        if sess_id:
+            dl_url = f"/api/session_download/{sess_id}/{filename}"
+        else:
+            dl_url = f"/api/download/{filename}"
+            
         return jsonify({
             "success": True, 
             "hex": hex_content,
             "device_name": result["device_name"],
-            "bundle_url": f"/api/download/{os.path.basename(result['bundle_file'])}"
+            "bundle_url": dl_url
         })
         
     except Exception as e:
         log(f"[Cloud] Build Error: {str(e)}", "error")
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
-        STATE["is_flashing"] = False
+        set_session_state(session_id, "is_flashing", False)
 
 @app.route('/api/flash_hex', methods=['POST'])
 def api_flash_hex():

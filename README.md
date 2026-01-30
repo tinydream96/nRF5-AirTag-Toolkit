@@ -84,9 +84,18 @@ Watch the elegant progress bar—system detection, firmware patching, and key in
 > [!IMPORTANT]
 > Although this tool is extremely simplified, we still provide a comprehensive knowledge base.
 
-* **[Beginner] [nRF51822 Unified Flashing Guide](docs/14-nRF51822_统一刷写工具指南.md)**
-* **[Advanced] [Deep Dive: Infinite Dynamic Keys](docs/16-Dynamic_Keys_技术详解.md)**
-* **[Visuals] [Common Board Wiring Diagrams](docs/17-常见开发板接线图集.md)**
+**🚀 Quick Start**
+* [5-Minute Quick Start](docs/01-快速开始.md) - Get started with Web Studio  
+* [Environment Setup](docs/02-环境安装.md) - Install tools, SDK, and drivers
+
+**📖 In-Depth Guides**
+* [Web Studio Complete Guide](docs/03-Web-Studio-完全指南.md) - Master the web interface
+* [CLI Flashing Tool](docs/04-命令行刷写工具.md) - Command-line power users
+* [Hardware Connection Manual](docs/05-硬件连接手册.md) - Wiring diagrams & recovery
+
+**🔬 Advanced Topics**
+* [Dynamic Keys Explained](docs/06-动态密钥技术详解.md) - Technical deep dive
+* [Batch Production Guide](docs/07-批量生产指南.md) - Mass production workflows
 
 ---
 

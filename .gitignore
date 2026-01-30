@@ -39,6 +39,9 @@ nrf-sdk/
 .agent/
 private/
 
+# User session data (generated firmware bundles)
+user_sessions/
+
 # Python / PyInstaller
 build/
 dist/
