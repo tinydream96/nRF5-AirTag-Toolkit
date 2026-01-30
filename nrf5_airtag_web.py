@@ -1171,5 +1171,5 @@ if __name__ == '__main__':
     if not os.path.exists(CONFIG_DIR):
         os.makedirs(CONFIG_DIR)
         
-    log("nRF5 AirTag Web Tool Started at http://127.0.0.1:8000", "success")
-    app.run(host='0.0.0.0', port=8000)
+    log("nRF5 AirTag Web Tool Started at http://127.0.0.1:52810", "success")
+    app.run(host='0.0.0.0', port=52810)
