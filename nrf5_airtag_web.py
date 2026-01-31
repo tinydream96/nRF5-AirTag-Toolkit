@@ -19,7 +19,9 @@ STATE = {
     "session_state": {},  # session_id -> {"is_flashing": bool, ...}
     "last_log_index": 0,
     "status_message": "Ready",
-    "stop_signal": False
+    "stop_signal": False,
+    "is_flashing": False,
+    "log_history": []
 }
 
 # --- Configuration ---
@@ -80,7 +82,7 @@ CHIP_MAP = {
 # ID 1 is reserved for Native nrfjprog (J-Link)
 OPENOCD_INTERFACES = {
     '2': 'interface/stlink.cfg',      # ST-Link
-    '3': 'interface/cmsis-dap.cfg',   # DAPLink / CMSIS-DAP
+    '3': 'config/daplink.cfg',        # DAPLink / CMSIS-DAP (Custom config)
     '4': 'interface/jlink.cfg',       # J-Link (via OpenOCD)
 }
 
@@ -97,6 +99,10 @@ CHIP_NAME_TO_KEY = {
 
 def log(msg, level="info", session_id=None):
     """Log to memory and file, optionally isolated by session"""
+    # Auto-detect session from thread if not provided
+    if not session_id:
+        session_id = getattr(threading.current_thread(), "session_id", None)
+        
     timestamp = datetime.now().strftime('%H:%M:%S')
     
     # CSS classes for frontend
@@ -150,22 +156,53 @@ def set_session_state(session_id, key, value):
         STATE["session_state"][session_id] = {}
     STATE["session_state"][session_id][key] = value
 
-def run_command(cmd, cwd=None, timeout=None):
-    """Run shell command and capture output (stdout + stderr combined)"""
+def run_command(cmd, cwd=None, timeout=None, log_func=None):
+    """Run shell command. If log_func provided, streams stdout line-by-line."""
     try:
-        proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
-        # Combine stdout and stderr for tools like OpenOCD that output to stderr
-        combined_output = (proc.stdout + "\n" + proc.stderr).strip()
-        if proc.returncode != 0:
-            return False, combined_output
-        return True, combined_output
+        # If no logging needed, use simple subprocess.run
+        if not log_func:
+            proc = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+            combined_output = (proc.stdout + "\n" + proc.stderr).strip()
+            if proc.returncode != 0:
+                return False, combined_output
+            return True, combined_output
+            
+        # Streaming mode
+        proc = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        output_lines = []
+        
+        start_time = datetime.now()
+        while True:
+            # Check timeout
+            if timeout and (datetime.now() - start_time).total_seconds() > timeout:
+                proc.kill()
+                return False, "Timeout"
+                
+            line = proc.stdout.readline()
+            if not line and proc.poll() is not None:
+                break
+            if line:
+                clean_line = line.strip()
+                if clean_line:
+                    output_lines.append(clean_line)
+                    # Broad filter for build and flash
+                    keywords = ["Compiling", "Linking", "Programming", "Verify", "Reading", "Writing", "Erasing", "Download", "O.K.", "Verified", "nRF5", "J-Link", "OpenOCD", "Flash", "halted"]
+                    if any(k in clean_line for k in keywords) or "error" in clean_line.lower() or "warning" in clean_line.lower():
+                        log_func(f"> {clean_line}", "info")
+        
+        rc = proc.poll()
+        full_output = "\n".join(output_lines)
+        if rc != 0:
+            return False, full_output
+        return True, full_output
+
     except subprocess.TimeoutExpired:
         return False, "Timeout"
     except Exception as e:
         return False, str(e)
 
 # Helper to perform one flash attempt (Global)
-def perform_flash(CHIP_CFG, patch_hex, debugger_type, flash_sd=False, timeout_val=None, probe_only=False):
+def perform_flash(CHIP_CFG, patch_hex, debugger_type, flash_sd=False, timeout_val=None, probe_only=False, session_id=None):
     if debugger_type == '1': # J-Link
         nrfjprog_success = False
         
@@ -217,13 +254,15 @@ def perform_flash(CHIP_CFG, patch_hex, debugger_type, flash_sd=False, timeout_va
                     f.write("exit\\n")
             
             # Use timeout if provided
-            t_jlink = timeout_val if timeout_val else 20
+            t_jlink = timeout_val if timeout_val else 60
             success, output = run_command(["JLinkExe", "-CommandFile", jlink_script_path], timeout=t_jlink)
             if os.path.exists(jlink_script_path): os.remove(jlink_script_path)
             
             if not success or "Cannot connect" in output or "FAILED" in output or "Could not connect" in output or "Failed to attach" in output or "Error occurred" in output:
                     raise Exception("JLinkExe failed: Connection Error")
-            if not probe_only: log("SUCCESS (JLinkExe)", "success")
+            if not probe_only:
+                log("Flash programming complete. | 固件写入完成。", "success")
+                log("SUCCESS (JLinkExe)", "success")
             
     else: # OpenOCD based debuggers (ST-Link, DAPLink, etc.)
         interface = get_openocd_interface(debugger_type)
@@ -239,13 +278,17 @@ def perform_flash(CHIP_CFG, patch_hex, debugger_type, flash_sd=False, timeout_va
             o_cmds.append("reset; exit")
         
         # Use timeout if provided
-        t_st = timeout_val if timeout_val else 20
+        t_st = timeout_val if timeout_val else 60
         # Determine interface config arg
         interface_cfg = interface
         
-        success, output = run_command(["openocd", "-f", interface_cfg, "-f", CHIP_CFG['openocd_target'], "-c", "; ".join(o_cmds)], timeout=t_st)
+        # Logger for OpenOCD
+        logger = lambda m, l: log(m, l, session_id=session_id) if session_id else None
+        success, output = run_command(["openocd", "-f", interface_cfg, "-f", CHIP_CFG['openocd_target'], "-c", "; ".join(o_cmds)], timeout=t_st, log_func=logger)
         if not success: raise Exception(f"OpenOCD ({interface}): {output}")
-        if not probe_only: log(f"SUCCESS (OpenOCD/{interface})", "success")
+        if not probe_only:
+            log("Flash programming complete. | 刷写成功 (Flashing Success)", "success", session_id=session_id)
+            log(f"SUCCESS (OpenOCD/{interface})", "success", session_id=session_id)
 
 def check_hardware_connection(config, chip_cfg):
     """
@@ -263,25 +306,37 @@ def check_hardware_connection(config, chip_cfg):
         cmd = "ioreg -p IOUSB -l"
         output = subprocess.check_output(cmd, shell=True).decode('utf-8')
         
-        if debugger_type == '1':  # J-Link
-            if "J-Link" in output:
-                # Try to get J-Link serial/model
-                debugger_info = "Segger J-Link"
-                if "J-Link OB" in output:
-                    debugger_info = "Segger J-Link OB"
-                elif "J-Link EDU" in output:
-                    debugger_info = "Segger J-Link EDU"
-                elif "J-Link Plus" in output:
-                    debugger_info = "Segger J-Link Plus"
-        else: # ST-Link
-             if "STLink" in output or "ST-Link" in output or "STLINK" in output or "stlink" in output.lower():
-                debugger_info = "ST-Link V2"
-                if "STLINK-V3" in output or "V3" in output:
-                    debugger_info = "ST-Link V3"
+        # Respect user selection in detection logic
+        detected_info = None
         
-        # Check for DAPLink regardless of selection for info logging
-        if not debugger_info and any(k in output for k in ["CMSIS-DAP", "DAPLink", "Mbed"]):
-             debugger_info = "DAPLink (CMSIS-DAP)"
+        # Helper to check strings
+        has_jlink = "J-Link" in output
+        has_stlink = "STLink" in output or "ST-Link" in output or "STLINK" in output or "stlink" in output.lower()
+        has_dap = any(k in output for k in ["CMSIS-DAP", "DAPLink", "Mbed"])
+
+        if debugger_type == '1': # J-Link
+            if has_jlink:
+                detected_info = "Segger J-Link"
+                if "J-Link OB" in output: detected_info = "Segger J-Link OB"
+                elif "J-Link EDU" in output: detected_info = "Segger J-Link EDU"
+                elif "J-Link Plus" in output: detected_info = "Segger J-Link Plus"
+        
+        elif debugger_type == '3': # DAPLink
+             if has_dap:
+                 detected_info = "DAPLink (CMSIS-DAP)"
+             # Fallback: if user selected DAPLink but we only see ST-Link (some ST-Links can be DAP compliant? usually not)
+        
+        elif debugger_type == '2': # ST-Link
+            if has_stlink:
+                detected_info = "ST-Link V2"
+                if "STLINK-V3" in output or "V3" in output: detected_info = "ST-Link V3"
+
+        # General Fallback if selected not found but connection check is requested?
+        # Actually better to stick to what user selected. 
+        # But for 'debugger_info' which is just used for display logs, we can use what we found.
+        # However, finding ST-Link when User selected DAPLink is confusing.
+        
+        debugger_info = detected_info
 
 
     except Exception as e:
@@ -547,8 +602,7 @@ def generate_firmware(config, chip_cfg=None):
                 files_to_zip.append((json_file, f"{device_name}_devices.json"))
 
         # --- 3. Build ---
-        log(f"Compiling firmware for {chip_cfg['name']}... | 正在编译固件...", "info", session_id=session_id)
-        run_command(["make", "-C", make_dir, "clean"])
+        # Line 569 removed (redundant make clean)
         
         interval = int(config['base_interval']) + (int(config['start_num']) * int(config['interval_step']))
         has_dcdc = "1" if config.get('dcdc', False) else "0"
@@ -565,12 +619,25 @@ def generate_firmware(config, chip_cfg=None):
         # --- CRITICAL SECTION: COMPILE ---
         # We must lock the build process because 'make' uses a shared _build directory.
         log("Waiting for build lock... | 等待编译队列...", "info", session_id=session_id)
+        
+
+        
+        # Clean BEFORE acquiring lock to ensure fresh build (faster than inside lock)
+        run_command(["make", "-C", make_dir, "clean"], timeout=30)
+        
         with BUILD_LOCK:
             log(f"Compiling firmware for {chip_cfg['name']}... | 正在编译固件...", "info", session_id=session_id)
-            run_command(["make", "-C", make_dir, "clean"])
-            success, output = run_command(cmd)
             
-            if not success: return False, None, f"Make failed: {output}"
+            # Helper for streaming logs with session_id
+            build_logger = lambda msg, level: log(msg, level, session_id=session_id)
+            
+            success, output = run_command(cmd, timeout=120, log_func=build_logger)
+            
+            if not success:
+                log(f"Compile Error: {output[:200]}", "error", session_id=session_id)
+                return False, None, f"Make failed: {output}"
+            
+            log("Compile finished. Copying artifacts... | 编译完成，正在复制...", "info", session_id=session_id)
             
             # COPY artifacts to session directory immediately to release lock safely
             if os.path.exists(global_build_hex):
@@ -729,7 +796,12 @@ def api_flash():
         return jsonify({"error": "Busy"}), 400
     
     config = request.json
+    if not config:
+        return jsonify({"error": "Invalid JSON body"}), 400
+    
+    session_id = config.get('session_id')
     STATE["is_flashing"] = True
+    set_session_state(session_id, "is_flashing", True)  # CRITICAL: Set session-level flag
     STATE["log_history"] = [] # Clear logs
     
     # Run flashing in background thread
@@ -740,6 +812,10 @@ def api_flash():
     return jsonify({"success": True, "message": "Flash process started"})
 
 def flash_task(config):
+    # Set session_id for this thread (propagates to log function automatically)
+    session_id = config.get('session_id')
+    threading.current_thread().session_id = session_id
+
     # Logs are cleared in api_flash now to ensure fresh start
     STATE["status_message"] = "Initializing..."
     STATE["last_generated_file"] = None
@@ -750,6 +826,7 @@ def flash_task(config):
     if not CHIP_CFG:
         log(f"Invalid Chip ID: {chip_id}", "error")
         STATE["is_flashing"] = False
+        set_session_state(config.get('session_id'), "is_flashing", False)  # Also update session
         return
 
     try:
@@ -818,13 +895,22 @@ def flash_task(config):
             
             try:
                 # Perform the flash
-                perform_flash(CHIP_CFG, patch_hex, config['debugger'], config.get('flash_sd', False), probe_only=False)
+                perform_flash(CHIP_CFG, patch_hex, config['debugger'], config.get('flash_sd', False), probe_only=False, session_id=session_id)
+                time.sleep(0.5)
                 
                 if autoflash:
                     STATE["status_message"] = "Cycle Complete. Remove device."
                     log("Cycle Done. Re-insert new device...", "info")
                     time.sleep(3) # Debounce
                 else:
+                    STATE["status_message"] = "Success"
+                    # Set download URL for frontend
+                    bundle_file = result.get("bundle_file")
+                    if bundle_file:
+                        download_url = f"/api/session_download/{session_id}/{bundle_file}"
+                        set_session_state(session_id, "download_url", download_url)
+                        log(f"SUCCESS (OpenOCD/config/daplink.cfg) | 刷写成功！", "success", session_id=session_id)
+                        log(f"下载链接已就绪: {bundle_file}", "success", session_id=session_id)
                     break # Single run done
                     
             except Exception as e:
@@ -839,7 +925,9 @@ def flash_task(config):
         log(f"ERROR: {str(e)}", "error")
         STATE["status_message"] = "Error"
     finally:
+        session_id = config.get('session_id')
         STATE["is_flashing"] = False
+        set_session_state(session_id, "is_flashing", False)  # CRITICAL: Notify frontend
         STATE["stop_signal"] = False
 
 
@@ -866,11 +954,15 @@ def api_logs():
     session_state = STATE["session_state"].get(session_id, {})
     is_flashing = session_state.get("is_flashing", False)
     
+    # Get session-specific download_url
+    download_url = session_state.get("download_url", None)
+    
     return jsonify({
         "logs": new_logs, 
         "next_index": len(session_logs),
         "status_message": STATE["status_message"],
-        "is_flashing": is_flashing
+        "is_flashing": is_flashing,
+        "download_url": download_url
     })
 
 @app.route('/api/download/<path:filename>')
@@ -1179,6 +1271,21 @@ def api_flash_hex():
     
     return jsonify({"success": True})
 
+
+
+@app.route('/api/logs/clear', methods=['POST'])
+def api_clear_logs():
+    """Clear logs for a session or global"""
+    session_id = request.args.get('session_id')
+    
+    if session_id:
+        if session_id in STATE["logs"]:
+            STATE["logs"][session_id] = []
+    else:
+        STATE["logs"]["global"] = []
+        
+    STATE["status_message"] = "Ready"
+    return jsonify({"success": True})
 
 
 if __name__ == '__main__':

@@ -8,9 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
     <!-- DAP.js for CMSIS-DAP/DAPLink WebUSB -->
-    <script src="https://cdn.jsdelivr.net/npm/dapjs@latest/dist/dap.browser.min.js"></script>
+    <script src="https://unpkg.com/dapjs/dist/dap.browser.min.js"></script>
     <style>
         :root {
             /* Apple Color Palette */
@@ -1696,7 +1696,8 @@
                                     x-text="lang === 'zh' ? '请求 USB 权限' : 'Request Permission'"></span>
                                 <span x-show="isWebUsbConnecting"
                                     x-text="lang === 'zh' ? '正在连接...' : 'Connecting...'"></span>
-                                <span x-show="webUsbDevice" x-text="webUsbDevice.productName"></span>
+                                <span x-show="webUsbDevice"
+                                    x-text="webUsbDevice ? webUsbDevice.productName : ''"></span>
                             </button>
                         </div>
 
@@ -2615,7 +2616,10 @@
                         await fetch('/api/flash', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(this.config)
+                            body: JSON.stringify({
+                                ...this.config,
+                                session_id: this.sessionId
+                            })
                         });
                     } catch (e) {
                         this.isFlashing = false;
@@ -2932,6 +2936,11 @@
                                     this.showAutoCorrectToast = true;
                                     setTimeout(() => { this.showAutoCorrectToast = false; }, 4000);
                                 }
+
+                                // CRITICAL FIX: Update step progress based on LOG MESSAGES, not just status
+                                if (this.isFlashing || data.is_flashing) {
+                                    this.updateStepFromStatus(msg);
+                                }
                             });
 
                             this.$nextTick(() => {
@@ -2940,26 +2949,28 @@
                             });
                         }
 
-                        if (data.status && data.status !== this.lastStatusStr) {
-                            this.lastStatusStr = data.status;
+                        // Also check status_message for completion states
+                        const statusMsg = data.status_message || data.status || '';
+                        if (statusMsg && statusMsg !== this.lastStatusStr) {
+                            this.lastStatusStr = statusMsg;
 
                             // Update step progress based on backend status
                             if (this.isFlashing || data.is_flashing) {
-                                this.updateStepFromStatus(data.status);
+                                this.updateStepFromStatus(statusMsg.toLowerCase());
                             }
 
-                            if (data.status.startsWith('WAITING') ||
-                                data.status.startsWith('DEVICE') ||
-                                data.status.startsWith('SUCCESS') ||
-                                data.status.startsWith('ERROR')) {
-                                this.lastNotification = data.status;
+                            if (statusMsg.startsWith('WAITING') ||
+                                statusMsg.startsWith('DEVICE') ||
+                                statusMsg.startsWith('SUCCESS') ||
+                                statusMsg.startsWith('ERROR')) {
+                                this.lastNotification = statusMsg;
                             }
 
-                            if (data.status.startsWith('SUCCESS')) {
+                            if (statusMsg.startsWith('SUCCESS')) {
                                 this.config.start_num = parseInt(this.config.start_num) + 1;
                                 this.fetchHistory();
                                 this.status = 'Success';
-                            } else if (data.status === 'Error' || data.status.includes('Error')) {
+                            } else if (statusMsg === 'Error' || statusMsg.includes('Error')) {
                                 this.status = 'Error';
                             } else if (data.is_flashing) {
                                 this.status = 'Busy';
@@ -2972,20 +2983,13 @@
                         const wasFlashing = this.isFlashing;
                         this.isFlashing = data.is_flashing;
 
-                        // Auto-reset step display after 5 seconds on success
-                        if (wasFlashing && !data.is_flashing && this.currentStep === 5) {
-                            setTimeout(() => {
-                                if (!this.isFlashing) {
-                                    this.currentStep = 0;
-                                    this.statusMessage = '';
-                                    this.statusHint = '';
-                                }
-                            }, 5000);
-                        }
 
-                        if ((data.last_generated_file || data.download_file) && !this.downloadUrl) {
-                            const fname = data.last_generated_file || data.download_file;
-                            this.downloadUrl = '/api/download/' + fname;
+                        // Keep success UI visible until next flash starts
+                        // (No auto-reset - user requested persistent download view)
+
+                        // Use download_url from API response (session-specific)
+                        if (data.download_url && !this.downloadUrl) {
+                            this.downloadUrl = data.download_url;
                         }
                     } catch (e) {
                         console.error('Log fetch failed', e);
@@ -2994,7 +2998,7 @@
 
                 async clearLogs() {
                     try {
-                        await fetch('/api/logs/clear', { method: 'POST' });
+                        await fetch(`/api/logs/clear?session_id=${this.sessionId}`, { method: 'POST' });
                         this.logs = [];
                     } catch (e) {
                         console.error('Clear failed', e);
