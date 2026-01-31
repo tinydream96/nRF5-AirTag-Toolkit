@@ -1677,28 +1677,48 @@
                             </div>
                         </div>
 
-                        <!-- 2. CLOUD MODE HARDWARE (WebUSB) -->
+                        <!-- 2. CLOUD MODE HARDWARE (WebUSB or Script) -->
                         <div x-show="workMode === 'cloud'">
+                            <!-- Cloud Method Toggle -->
+                            <div class="segmented-control" style="margin-bottom: 15px;">
+                                <button class="segment-btn" :class="cloudFlasherType === 'webusb' ? 'active' : ''"
+                                    @click="cloudFlasherType = 'webusb'">
+                                    <span x-text="lang === 'zh' ? '在线刷写 (WebUSB)' : 'Online Flash'"></span>
+                                </button>
+                                <button class="segment-btn" :class="cloudFlasherType === 'script' ? 'active' : ''"
+                                    @click="cloudFlasherType = 'script'">
+                                    <span x-text="lang === 'zh' ? '离线脚本' : 'Offline Script'"></span>
+                                </button>
+                            </div>
+
                             <!-- ST-Link removed as per user request -->
                             <input type="hidden" x-model="webUsbDriver">
 
-                            <div class="section-header" style="margin-top:15px; margin-bottom:10px;">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
-                                        d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                <span x-text="lang === 'zh' ? '连接设备' : 'CONNECT DEVICE'"></span>
-                            </div>
+                            <div x-show="cloudFlasherType === 'webusb'">
+                                <div class="section-header" style="margin-top:15px; margin-bottom:10px;">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="13" height="13">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    <span x-text="lang === 'zh' ? '连接设备' : 'CONNECT DEVICE'"></span>
+                                </div>
 
-                            <button class="btn-primary" @click="connectWebUSB()" :disabled="isWebUsbConnecting"
-                                :style="webUsbDevice ? 'background: rgba(48,209,88,0.15); color: var(--accent-green); border: 1px solid var(--accent-green);' : ''">
-                                <span x-show="!isWebUsbConnecting && !webUsbDevice"
-                                    x-text="lang === 'zh' ? '请求 USB 权限' : 'Request Permission'"></span>
-                                <span x-show="isWebUsbConnecting"
-                                    x-text="lang === 'zh' ? '正在连接...' : 'Connecting...'"></span>
-                                <span x-show="webUsbDevice"
-                                    x-text="webUsbDevice ? webUsbDevice.productName : ''"></span>
-                            </button>
+                                <button class="btn-primary" @click="connectWebUSB()" :disabled="isWebUsbConnecting"
+                                    :style="webUsbDevice ? 'background: rgba(48,209,88,0.15); color: var(--accent-green); border: 1px solid var(--accent-green);' : ''">
+                                    <span x-show="!isWebUsbConnecting && !webUsbDevice"
+                                        x-text="lang === 'zh' ? '连接 DAPLink (WebUSB)' : 'Connect DAPLink'"></span>
+                                    <span x-show="isWebUsbConnecting"
+                                        x-text="lang === 'zh' ? '正在连接...' : 'Connecting...'"></span>
+                                    <span x-show="webUsbDevice"
+                                        x-text="webUsbDevice ? webUsbDevice.productName : ''"></span>
+                                </button>
+
+                                <div
+                                    style="font-size: 10px; color: var(--text-tertiary); opacity: 0.8; margin-top: 8px; line-height: 1.4;">
+                                    <span
+                                        x-text="lang === 'zh' ? '提示: 仅支持 CMSIS-DAP/DAPLink 调试器在线刷写。ST-Link/J-Link 请使用离线脚本模式。' : 'Note: Only DAPLink supports online flashing. Use Offline Script for ST-Link/J-Link.'"></span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Intelligent Sensing Card (Local Mode Only) -->
@@ -1838,15 +1858,16 @@
                 <div class="sidebar-footer">
                     <button class="btn-primary" :class="isFlashing ? 'danger' : ''"
                         @click="isFlashing ? cancelFlash() : startFlash()"
-                        x-text="isFlashing ? t('cancel') : (workMode === 'local' ? t('startFlash') : (lang === 'zh' ? '云端生成固件' : 'Cloud Generate'))">
+                        x-text="isFlashing ? t('cancel') : (workMode === 'local' ? t('startFlash') : (cloudFlasherType === 'webusb' ? (lang === 'zh' ? '云端生成固件' : 'Cloud Generate') : (lang === 'zh' ? '生成刷机包' : 'Generate Bundle')))">
                         START FLASHING
                     </button>
 
                     <!-- WebUSB Write Button (Actual Implementation) -->
                     <button class="btn-primary flash-btn-remote"
                         style="margin-top: 10px; background: var(--accent-blue);"
-                        x-show="workMode === 'cloud' && cloudHex && webUsbDevice" :disabled="isFlashing"
-                        @click="flashWebUSB()" x-text="lang === 'zh' ? '写入硬件' : 'Write to Hardware'">
+                        x-show="workMode === 'cloud' && cloudHex && webUsbDevice && cloudFlasherType === 'webusb'"
+                        :disabled="isFlashing" @click="flashWebUSB()"
+                        x-text="lang === 'zh' ? '写入硬件' : 'Write to Hardware'">
                         WRITE TO HARDWARE
                     </button>
                 </div>
@@ -2280,6 +2301,7 @@
                 deleteModal: false,
                 historyOpen: false,
                 workMode: 'local', // 'local' or 'cloud'
+                cloudFlasherType: 'webusb', // 'webusb' or 'script'
                 cloudHex: null,
                 webUsbDevice: null,
                 webUsbProgress: 0,
@@ -2656,10 +2678,21 @@
                                 this.downloadUrl = data.bundle_url;
                             }
                             this.addLog(`[Cloud] Firmware generated: ${data.device_name}`, 'success');
-                            this.currentStep = 4; // Move to Flash step
-                            this.statusMessage = this.lang === 'zh' ? '固件就绪，请选择刷写方式' : 'Firmware ready, choose flash method';
-                            this.statusHint = this.lang === 'zh' ? '点击“写入硬件”通过 USB 刷写' : 'Click "Write to Hardware" to flash via USB';
-                            this.statusBoxClass = 'waiting';
+
+                            // Handling for different Cloud Modes
+                            if (this.cloudFlasherType === 'script') {
+                                this.status = 'Success'; // Mark as done immediately
+                                this.currentStep = 5;    // Show as Done
+                                this.statusMessage = this.lang === 'zh' ? '刷机包已生成' : 'Bundle Generated';
+                                this.statusHint = this.lang === 'zh' ? '请点击下方绿色按钮下载，然后运行脚本刷写' : 'Download the bundle below and run script to flash';
+                                this.statusBoxClass = 'success';
+                            } else {
+                                // WebUSB Mode: Move to Flash step
+                                this.currentStep = 4;
+                                this.statusMessage = this.lang === 'zh' ? '固件就绪，请选择刷写方式' : 'Firmware ready, choose flash method';
+                                this.statusHint = this.lang === 'zh' ? '点击“写入硬件”通过 USB 刷写' : 'Click "Write to Hardware" to flash via USB';
+                                this.statusBoxClass = 'waiting';
+                            }
 
                             // For demo purposes, we log the first few lines of HEX
                             this.addLog(`[Cloud] HEX Data received (${data.hex.length} bytes)`, 'info');
