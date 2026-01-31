@@ -1667,10 +1667,12 @@
                                 x-text="lang === 'zh' ? '本地调试器接口' : 'Local Interface'"></label>
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px;">
                                 <select class="select-field" x-model="config.debugger" style="flex: 1; height: 38px;">
-                                    <option value="1">Segger J-Link (Native)</option>
-                                    <option value="2">ST-Link V2/V3 (OpenOCD)</option>
-                                    <option value="3">DAPLink / CMSIS-DAP (OpenOCD)</option>
-                                    <option value="4">J-Link (OpenOCD)</option>
+                                    <option value="1" x-text="getDebugOptionText('1', 'Segger J-Link (Native)')">
+                                    </option>
+                                    <option value="2" x-text="getDebugOptionText('2', 'ST-Link V2/V3 (OpenOCD)')">
+                                    </option>
+                                    <option value="3" x-text="getDebugOptionText('3', 'DAPLink (CMSIS-DAP)')"></option>
+
                                 </select>
                             </div>
                         </div>
@@ -2089,7 +2091,9 @@
                         </div>
                         <div class="hero-badge">
                             <div class="badge-label" x-text="t('hardware')">Debugger</div>
-                            <div class="badge-value" x-text="config.debugger === '1' ? 'J-Link' : 'ST-Link'">ST-Link
+                            <div class="badge-value"
+                                x-text="config.debugger === '1' ? 'J-Link' : (config.debugger === '2' ? 'ST-Link' : 'DAPLink')">
+                                ST-Link
                             </div>
                         </div>
                         <div class="hero-badge">
@@ -2378,6 +2382,19 @@
                     return text;
                 },
 
+                getDebugOptionText(val, defaultLabel) {
+                    // Check if this option matches ANY connected debugger
+                    if (this.debuggerConnected) {
+                        const available = this.availableDebuggers || [];
+                        if (available.includes(val)) {
+                            // If selected, show "Active". If just available, show "Ready".
+                            if (this.config.debugger === val) return defaultLabel + (this.lang === 'zh' ? ' (✅ 使用中)' : ' (✅ Active)');
+                            return defaultLabel + (this.lang === 'zh' ? ' (⚪️ 可用)' : ' (⚪️ Ready)');
+                        }
+                    }
+                    return defaultLabel;
+                },
+
                 init() {
                     window.alpineApp = this;
                     setInterval(() => this.poll(), 800);
@@ -2390,16 +2407,31 @@
                     try {
                         const res = await fetch('/api/detect_debugger');
                         const data = await res.json();
-                        if (data.detected && data.debugger) {
-                            if (data.debugger !== this.config.debugger) {
-                                this.config.debugger = data.debugger;
-                                this.autoDetected = true;
+                        if (data.detected) {
+                            // Smart Switch: 
+                            // Only switch if current selection is NOT available, OR if we haven't auto-detected yet.
+                            // This allows user to manually choose ST-Link even if DAPLink (Higher Priority) is also plugged in.
+                            const available = data.available || [data.debugger];
+                            const currentIsValid = available.includes(this.config.debugger);
+
+                            if (!currentIsValid || !this.autoDetected) {
+                                if (data.debugger && data.debugger !== this.config.debugger) {
+                                    this.config.debugger = data.debugger;
+                                    this.autoDetected = true;
+                                }
                             }
                             this.debuggerConnected = true;
-                            this.debuggerName = data.name || (data.debugger === '1' ? 'J-Link' : 'ST-Link');
+
+                            // Visuals: If multiple connected, update visual name logic if needed. 
+                            // But keeping it simple: just show checked status.
+                            this.debuggerName = data.name;
+
+                            // Store available list for UI highlighting
+                            this.availableDebuggers = available;
                         } else {
                             this.debuggerConnected = false;
                             this.debuggerName = null;
+                            this.availableDebuggers = [];
                         }
                     } catch (e) {
                         this.debuggerConnected = false;

@@ -27,6 +27,15 @@ GND     -->    GND
 
 > ⚠️ **重要**: GND 必须连接！否则会导致连接不稳定。
 
+### 2.1 DAPLink / ST-Link (USB Dongle) 特别提示
+
+市面上的 USB Dongle (如 MuseLab, WCH-Link 等) 引脚排列**不固定**。请务必查看外壳上的标签或 PCB 丝印：
+
+* **SWDIO (DIO)**: 数据线
+* **SWCLK (CLK)**: 时钟线
+* **GND**: 地线 (必须接)
+* **3V3 / 5V**: 仅连接 3.3V 到芯片 VCC。**切勿**将 5V 连接到 nRF 芯片，否则会烧毁芯片。
+
 ---
 
 ## 3. 常见模块接线图
@@ -46,29 +55,29 @@ GND     -->    GND
 **常见芯片**: nRF52832/52810/52811  
 **引脚标注**：
 
-- **GND**: 顶部接地焊盘
-- **VCC**: 3.3V 电源输入
-- **CLK**: SWCLK
-- **DIO**: SWDIO
+* **GND**: 顶部接地焊盘
+* **VCC**: 3.3V 电源输入
+* **CLK**: SWCLK
+* **DIO**: SWDIO
 
 ### 3.3 黑色圆形防丢器（超薄型）
 
 **常见芯片**: nRF52832  
 **测试点**：
 
-- **DIO**: 右侧靠上
-- **CLK**: 右侧靠下
-- **GND/VCC**: 从电池座引出
+* **DIO**: 右侧靠上
+* **CLK**: 右侧靠下
+* **GND/VCC**: 从电池座引出
 
 ### 3.4 绿色长条模块（邮票孔）
 
 **常见芯片**: nRF51822  
 **右侧焊盘**（从上至下）：
 
-- **GND**
-- **CLK** (SWCLK)
-- **DIO** (SWDIO)
-- **VCC** (3.3V)
+* **GND**
+* **CLK** (SWCLK)
+* **DIO** (SWDIO)
+* **VCC** (3.3V)
 
 ### 3.5 Unice 水滴形 (GS1-P2)
 
@@ -92,9 +101,9 @@ GND     -->    GND
 
 如果遇到以下报错，说明芯片被保护：
 
-- `unable to connect to the target`
-- `nRF52 device has APPROTECT enabled`
-- `Programming failed`
+* `unable to connect to the target`
+* `nRF52 device has APPROTECT enabled`
+* `Programming failed`
 
 ### 4.2 方法 A: 使用 Web Studio（推荐）
 
@@ -149,16 +158,16 @@ A: 这是正常提示，`mass_erase` 命令仍然有效，忽略即可。
 
 ❌ **错误操作**:
 
-- SWDIO 和 SWCLK 交叉连接
-- 忘记连接 GND
-- 在设备运行时热插拔调试器
-- 同时连接调试器 3.3V 和电池供电（可能烧毁芯片）
+* SWDIO 和 SWCLK 交叉连接
+* 忘记连接 GND
+* 在设备运行时热插拔调试器
+* 同时连接调试器 3.3V 和电池供电（可能烧毁芯片）
 
 ✅ **正确做法**:
 
-- 先连接 GND
-- 确认引脚定义后再通电
-- 使用万用表测量电压
+* 先连接 GND
+* 确认引脚定义后再通电
+* 使用万用表测量电压
 
 ---
 
@@ -179,5 +188,5 @@ graph TD
 
 > 相关文档:
 >
-> - [快速开始](../getting-started/index.md)
-> - [命令行刷写工具](../manuals/cli-tool.md)
+> * [快速开始](../getting-started/index.md)
+> * [命令行刷写工具](../manuals/cli-tool.md)

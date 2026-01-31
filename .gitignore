@@ -32,6 +32,8 @@ config/*
 
 # Firmware dumps
 firmware/
+firmware_output/
+*_keys.json
 
 # SDK (Excluded to reduce repo size. Users should use setup_sdk.sh)
 nrf-sdk/

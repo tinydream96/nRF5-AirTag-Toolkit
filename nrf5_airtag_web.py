@@ -278,6 +278,11 @@ def check_hardware_connection(config, chip_cfg):
                 debugger_info = "ST-Link V2"
                 if "STLINK-V3" in output or "V3" in output:
                     debugger_info = "ST-Link V3"
+        
+        # Check for DAPLink regardless of selection for info logging
+        if not debugger_info and any(k in output for k in ["CMSIS-DAP", "DAPLink", "Mbed"]):
+             debugger_info = "DAPLink (CMSIS-DAP)"
+
 
     except Exception as e:
         log(f"Debugger pre-check (ioreg) failed: {e}. Proceeding to probe...", "warning")
@@ -285,6 +290,7 @@ def check_hardware_connection(config, chip_cfg):
     # If debugger info is still None, default to generic
     if not debugger_info:
         if debugger_type == '1': debugger_info = "J-Link (Probing...)"
+        elif debugger_type == '3': debugger_info = "DAPLink (Probing...)"
         else: debugger_info = "ST-Link (Probing...)"
     
     # Step 2: Check chip connection
@@ -1037,26 +1043,36 @@ def api_detect_debugger():
         # ST-Link debuggers usually have "STLink" or "ST-Link" in their name.
         # REMOVED .lower() check to avoid matching random system strings containing "stlink" (unlikely but possible).
         is_st = "STLink" in output or "ST-Link" in output or "STLINK" in output
-        
         is_jlink = "J-Link" in output
+        is_dap = "CMSIS-DAP" in output or "DAPLink" in output or "Mbed" in output
         
-        connected = is_st or is_jlink
+        connected = is_st or is_jlink or is_dap
         
+        available = []
+        if is_jlink: available.append('1')
+        if is_dap: available.append('3')
+        if is_st: available.append('2')
+
         debugger_name = None
         debugger_id = None
-        if connected:
-            if is_jlink: 
-                debugger_name = "Segger J-Link"
-                debugger_id = '1'
-            elif is_st: 
-                debugger_name = "ST-Link"
-                debugger_id = '2'
+        
+        # Priority Logic: J-Link > DAPLink > ST-Link
+        if is_jlink: 
+            debugger_name = "Segger J-Link"
+            debugger_id = '1'
+        elif is_dap:
+            debugger_name = "DAPLink (CMSIS-DAP)"
+            debugger_id = '3'
+        elif is_st: 
+            debugger_name = "ST-Link"
+            debugger_id = '2'
             
         return jsonify({
             "detected": connected,
-            "connected": connected, # Keep for backward compatibility
+            "connected": connected,
             "debugger": debugger_id,
-            "name": debugger_name
+            "name": debugger_name,
+            "available": available
         })
     except Exception as e:
         return jsonify({"detected": False, "connected": False, "error": str(e)})

@@ -114,6 +114,38 @@ check_stlink_connection() {
     sleep 1
 }
 
+# --- 连接检查函数 (DAPLink) ---
+check_daplink_connection() {
+    echo
+    echo "--- 步骤 2: 正在等待 DAPLink 和 设备连接 (全自动) ---"
+    while true; do
+        OUTPUT=$(openocd -f config/daplink.cfg -c "init; exit" 2>&1)
+        if [ $? -eq 0 ]; then
+             echo "✅ 检测到设备 (OpenOCD Init Success)"
+             break
+        fi
+        
+        if echo "$OUTPUT" | grep -q "Error: open failed"; then
+             echo "Waiting for DAPLink... (未检测到调试器)"
+        elif echo "$OUTPUT" | grep -q "unable to open cmsis-dap device"; then
+             echo "Waiting for DAPLink... (未检测到调试器)"
+        else
+            echo "DAPLink 在线，但无法连接芯片..."
+            echo "   -> 正在尝试自动解锁 (Mass Erase)..."
+            openocd -f config/daplink.cfg -c "init; nrf51 mass_erase; exit" > /dev/null 2>&1
+            if [ $? -eq 0 ]; then
+                echo "✅ 解锁/擦除成功！"
+                break
+            else
+                echo "❌ 连接失败。请检查: 1.芯片供电 2.SWD线序"
+            fi
+        fi
+        sleep 1
+    done
+    echo "🔗 连接建立，准备刷写..."
+    sleep 1
+}
+
 # --- 主程序开始 ---
 clear
 echo "========================================"
@@ -135,6 +167,9 @@ AUTO_DEBUGGER=""
 if ioreg -p IOUSB -l | grep -qi "J-Link"; then
     AUTO_DEBUGGER="1"
     echo -e "\033[36m[AUTO] 检测到 Segger J-Link 连接\033[0m"
+elif ioreg -p IOUSB -l | grep -Ei "CMSIS-DAP|DAPLink|Mbed" > /dev/null; then
+    AUTO_DEBUGGER="3"
+    echo -e "\033[36m[AUTO] 检测到 DAPLink (CMSIS-DAP) 连接\033[0m"
 elif ioreg -p IOUSB -l | grep -Ei "ST-Link|STLINK" > /dev/null; then
     AUTO_DEBUGGER="2"
     echo -e "\033[36m[AUTO] 检测到 ST-Link 连接\033[0m"
@@ -143,6 +178,7 @@ fi
 echo "请选择调试器:"
 echo " 1. [J-Link]  nrfjprog (推荐)"
 echo " 2. [ST-Link] OpenOCD"
+echo " 3. [DAPLink] OpenOCD (CMSIS-DAP)"
 
 DEFAULT_DEBUG_CHOICE=${AUTO_DEBUGGER:-1}
 read -p "请输入选项 (默认 $DEFAULT_DEBUG_CHOICE): " DEBUG_CHOICE
@@ -232,7 +268,7 @@ while true; do
     echo "       本次参数预览"
     echo -e "========================================\033[0m"
     echo "  - 模式: $([ "$MODE" == "1" ] && echo "Dynamic (Seed Patch)" || echo "Static (Key Patch)")"
-    echo "  - 调试器: $([ "$DEBUGGER" == "1" ] && echo "J-Link" || echo "ST-Link")"
+    echo "  - 调试器: $([ "$DEBUGGER" == "1" ] && echo "J-Link" || ([ "$DEBUGGER" == "2" ] && echo "ST-Link" || echo "DAPLink"))"
     echo "  - 设备: $DEVICE_NAME"
     echo "  - 广播间隔: $CURRENT_INTERVAL ms"
     echo -e "\033[1;33m========================================\033[0m"
@@ -367,8 +403,10 @@ while true; do
     # 1. Check Connection
     if [ "$DEBUGGER" == "1" ]; then
         check_jlink_connection
-    else
+    elif [ "$DEBUGGER" == "2" ]; then
         check_stlink_connection
+    else
+        check_daplink_connection
     fi
     
     # 2. Clean
@@ -440,7 +478,7 @@ while true; do
         nrfjprog -f nrf51 --program "$PATCH_HEX" --sectorerase --verify
         nrfjprog -f nrf51 --reset
         
-    else
+    elif [ "$DEBUGGER" == "2" ]; then
         # ST-Link
         # Construct OpenOCD commands
         CMDS="init; halt; nrf51 mass_erase;"
@@ -453,6 +491,19 @@ while true; do
         CMDS="$CMDS program $PATCH_HEX verify; reset; exit"
         
         openocd -f interface/stlink.cfg -f target/nrf51.cfg -c "$CMDS"
+    else
+        # DAPLink
+        # Construct OpenOCD commands
+        CMDS="init; halt; nrf51 mass_erase;"
+        if [ "$NEED_SD" = true ]; then
+            echo "   -> Flashing SoftDevice..."
+            SD_PATH="nrf-sdk/nRF5_SDK_12.3.0_d7731ad/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex"
+            CMDS="$CMDS program $SD_PATH verify;"
+        fi
+        echo "   -> Flashing Application..."
+        CMDS="$CMDS program $PATCH_HEX verify; reset; exit"
+        
+        openocd -f config/daplink.cfg -c "$CMDS"
     fi
 
     echo "🎉 刷写完成!"
