@@ -691,6 +691,33 @@ def generate_firmware(config, chip_cfg=None):
         if os.path.exists(sd_path):
             files_to_zip.append((sd_path, "softdevice.hex"))
 
+        # --- 5. Create Full Merged Image for WebUSB ---
+        # WebUSB DAPLink performs Chip Erase, so we MUST provide a full image (SD + App)
+        full_hex = os.path.join(output_dir, f"{chip_cfg['build_name']}_full.hex")
+        if os.path.exists(sd_path):
+            log("Merging SoftDevice + App for WebUSB...", "info", session_id=session_id)
+            try:
+                with open(sd_path, 'r') as f_sd:
+                    sd_lines = f_sd.readlines()
+                with open(patch_hex, 'r') as f_app:
+                    app_lines = f_app.readlines()
+                
+                # Filter out EOF record from SoftDevice (Generic Intel HEX EOF is :00000001FF)
+                # But safer to just remove any record type 01 (:.. .. .. 01 ..)
+                sd_lines = [l for l in sd_lines if not l.strip().startswith(':00000001FF')]
+                
+                with open(full_hex, 'w') as f_out:
+                    f_out.writelines(sd_lines)
+                    f_out.writelines(app_lines)
+                
+                # Update result to point to FULL hex for the frontend to use
+                patch_hex = full_hex
+                log("Merged firmware created.", "success", session_id=session_id)
+            except Exception as e:
+                log(f"Failed to merge hex: {e}", "warning", session_id=session_id)
+        else:
+             log("SoftDevice not found, skipping merge.", "warning", session_id=session_id)
+
         # Create Offline Flash Scripts
         flash_sh_content = f"""#!/bin/bash
 # Auto-generated offline flash script for {chip_cfg['name']}
@@ -709,12 +736,16 @@ OOCD_TARGET="{chip_cfg['openocd_target']}"
 echo "Select Debugger:"
 echo "1. ST-Link V2/V3 (OpenOCD)"
 echo "2. J-Link (nrfjprog)"
+echo "3. DAPLink (OpenOCD)"
 read -p "Choice [1]: " CHOICE
 CHOICE=${{CHOICE:-1}}
 
 if [ "$CHOICE" == "1" ]; then
-    echo "Starting OpenOCD for $FAMILY..."
+    echo "Starting OpenOCD for $FAMILY (ST-Link)..."
     openocd -f interface/stlink.cfg -f $OOCD_TARGET -c "init; reset halt; $FAMILY mass_erase; program softdevice.hex verify; program firmware.hex verify; reset; exit"
+elif [ "$CHOICE" == "3" ]; then
+    echo "Starting OpenOCD for $FAMILY (DAPLink)..."
+    openocd -f interface/cmsis-dap.cfg -f $OOCD_TARGET -c "adapter speed 1000; init; reset halt; $FAMILY mass_erase; program softdevice.hex verify; program firmware.hex verify; reset; exit"
 else
     echo "Starting nrfjprog for $FAMILY..."
     nrfjprog -f $FAMILY --program softdevice.hex --chiperase --verify 
@@ -741,18 +772,26 @@ set OOCD_TARGET={chip_cfg['openocd_target']}
 echo Select Debugger:
 echo 1. ST-Link V2/V3 (OpenOCD)
 echo 2. J-Link (nrfjprog)
+echo Note: DAPLink is not supported offline on Windows due to driver conflicts.
+echo       Please use the Web Flasher (Online) for DAPLink.
 set /p CHOICE="Choice [1]: "
 if "%CHOICE%"=="" set CHOICE=1
 
-if "%CHOICE%"=="1" (
-    echo Starting OpenOCD for %FAMILY%...
+if "%CHOICE%"=="1" goto do_stlink
+goto do_jlink
+
+:do_stlink
+    echo Starting OpenOCD for %FAMILY% (ST-Link)...
     openocd -f interface/stlink.cfg -f %OOCD_TARGET% -c "init; reset halt; %FAMILY% mass_erase; program softdevice.hex verify; program firmware.hex verify; reset; exit"
-) else (
+    goto end
+
+:do_jlink
     echo Starting nrfjprog for %FAMILY%...
     nrfjprog -f %FAMILY% --program softdevice.hex --chiperase --verify
     nrfjprog -f %FAMILY% --program firmware.hex --verify --reset
-)
+    goto end
 
+:end
 echo Done.
 pause
 """
@@ -1294,5 +1333,7 @@ if __name__ == '__main__':
     if not os.path.exists(CONFIG_DIR):
         os.makedirs(CONFIG_DIR)
         
-    log("nRF5 AirTag Web Tool Started at http://127.0.0.1:52810", "success")
-    app.run(host='0.0.0.0', port=52810)
+    log("nRF5 AirTag Web Tool Started at https://0.0.0.0:52810", "success")
+    # For LAN access with WebUSB (DapLink), HTTPS is required.
+    # We use the generated self-signed certificates.
+    app.run(host='0.0.0.0', port=52810, ssl_context=('cert.pem', 'key.pem'))

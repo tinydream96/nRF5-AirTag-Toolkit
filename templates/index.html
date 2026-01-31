@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
     <!-- DAP.js for CMSIS-DAP/DAPLink WebUSB -->
-    <script src="https://unpkg.com/dapjs/dist/dap.browser.min.js"></script>
+    <script src="/static/js/dap.umd.js"></script>
     <style>
         :root {
             /* Apple Color Palette */
@@ -2834,15 +2834,34 @@
                     await target.writeMem32(NVMC_CONFIG, 1); // WRITE mode
 
                     const flashBase = 0x00000000;
-                    const chunkSize = 1024; // DAPLink can handle larger blocks
+                    const chunkSize = 1024; // Safe chunk size
 
                     for (let offset = 0; offset < data.length; offset += chunkSize) {
                         const chunk = data.slice(offset, offset + chunkSize);
-                        // DAPjs writeBlock equivalent (writeMem behaves like block write for arrays)
-                        await target.writeBlock(flashBase + offset, chunk);
 
-                        this.webUsbProgress = Math.round((offset / data.length) * 100);
-                        if (offset % 4096 === 0) {
+                        // Defensively copy to new buffer to ensure byteOffset is 0 and alignment is valid
+                        const chunkCopy = new Uint8Array(chunk);
+
+                        // Convert to Uint32Array for DAPjs (prevents DataView offset errors)
+                        // Note: parseHex guarantees chunkCopy.length is multiple of 4
+                        const words = new Uint32Array(chunkCopy.buffer);
+
+                        // Optimization: Check for empty block (all 0xFFFFFFFF)
+                        let isEmpty = true;
+                        for (let i = 0; i < words.length; i++) {
+                            if (words[i] !== 0xFFFFFFFF) { isEmpty = false; break; }
+                        }
+
+                        if (isEmpty) {
+                            this.webUsbProgress = Math.round(((offset + chunk.length) / data.length) * 100);
+                            // Only log sparingly to avoid spam
+                            continue;
+                        }
+
+                        await target.writeBlock(flashBase + offset, words);
+
+                        this.webUsbProgress = Math.round(((offset + chunk.length) / data.length) * 100);
+                        if (offset % 16384 === 0) {
                             this.addLog(`[DAP] Progress: ${this.webUsbProgress}%`, 'info');
                         }
                     }
@@ -2856,19 +2875,44 @@
 
                 parseHex(hexString) {
                     const lines = hexString.split('\n');
-                    let binary = [];
+                    // Alloc 1MB buffer filled with 0xFF to handle sparse HEX (SoftDevice + App gaps)
+                    // This covers nRF52840 (1MB) and nRF52832 (512KB)
+                    const buffer = new Uint8Array(0x100000);
+                    buffer.fill(0xFF);
+
+                    let highAddress = 0;
+                    let maxAddress = 0;
+
                     for (let line of lines) {
+                        line = line.trim();
                         if (!line.startsWith(':')) continue;
                         const len = parseInt(line.substr(1, 2), 16);
+                        const addr = parseInt(line.substr(3, 4), 16);
                         const type = parseInt(line.substr(7, 2), 16);
+
                         if (type === 0x00) { // Data record
                             const data = line.substr(9, len * 2);
-                            for (let i = 0; i < data.length; i += 2) {
-                                binary.push(parseInt(data.substr(i, 2), 16));
+                            // Calculate full address
+                            const baseAddr = (highAddress * 0x10000) + addr;
+
+                            for (let i = 0; i < len; i++) {
+                                const val = parseInt(data.substr(i * 2, 2), 16);
+                                if (baseAddr + i < buffer.length) {
+                                    buffer[baseAddr + i] = val;
+                                    maxAddress = Math.max(maxAddress, baseAddr + i);
+                                }
                             }
+                        } else if (type === 0x04) { // Extended Linear Address
+                            highAddress = parseInt(line.substr(9, 4), 16);
                         }
                     }
-                    return new Uint8Array(binary);
+
+                    // Return buffer up to end of data, aligned to 4 bytes for DAPjs
+                    let end = maxAddress + 1;
+                    while (end % 4 !== 0) end++;
+
+                    console.log(`Hex parsed: ${end} bytes prepared (aligned)`);
+                    return buffer.slice(0, end);
                 },
 
                 async flashLocal() {
