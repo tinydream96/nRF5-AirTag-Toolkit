@@ -1883,7 +1883,8 @@
 
                     <div style="position: relative; z-index: 1; text-align: center; width: 100%; max-width: 800px;">
                         <!-- Device Name -->
-                        <div class="hero-title" x-text="t('heroTitle')">NEXT TARGET DEVICE</div>
+                        <div class="hero-title" x-text="config.mode === '1' ? 'INFINITY TAG' : 'STANDARD TAG'">NEXT
+                            TARGET DEVICE</div>
                         <div class="hero-device" x-text="padDeviceName(config.prefix, config.start_num)">TEST001</div>
 
                         <!-- Step Progress Indicator -->
@@ -2320,8 +2321,8 @@
                         prefix: 'ID Prefix',
                         index: 'Start Number',
                         security: 'Key Mode',
-                        dynamicMode: 'Dynamic',
-                        staticMode: 'Static',
+                        dynamicMode: 'Infinity Tag',
+                        staticMode: 'Standard Tag',
                         keyCount: 'Key Count (Max 200)',
                         dynamicDesc: 'Seeds generated infinitely in firmware. Keys rotate every 15 minutes.',
                         staticDesc: 'Cycles through a fixed set of {n} keys. Rotates every 15 minutes.',
@@ -2362,8 +2363,8 @@
                         prefix: '识别前缀',
                         index: '起始编号',
                         security: '密钥模式',
-                        dynamicMode: '动态生成',
-                        staticMode: '固定循环',
+                        dynamicMode: 'Infinity Tag',
+                        staticMode: 'Standard Tag',
                         keyCount: '密钥数量 (最大 200)',
                         dynamicDesc: '固件根据种子无限生成密钥，每 15 分钟轮换。',
                         staticDesc: '在固定的 {n} 个密钥中循环，每 15 分钟轮换。',

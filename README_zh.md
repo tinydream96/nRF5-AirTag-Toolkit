@@ -3,15 +3,16 @@
 > [🇺🇸 English](./README.md) | **[🇨🇳 中文](./README_zh.md)**
 
 <p align="center">
-  <br><b>让每一块 nRF5 芯片，都拥有 AirTag 的灵魂。</b><br>
+  <br><b>Infinity Tag 的大本营。</b><br>
   目前最强大、最优雅、且唯一具备“零门槛”体验的 Apple Find My 网络固件部署方案。
 </p>
 
-# 💎 为什么它是行业标杆？
+# 💎 隆重介绍：Infinity Tag (终极形态)
 
-如果你厌倦了繁琐的命令行、乱七八糟的密钥管理、以及频繁失效的定位轨迹，**nRF5-AirTag-Toolkit** 就是为你而生的终极答案。
+**nRF5-AirTag-Toolkit** 为您带来追踪技术的下一次进化：**Infinity Tag**。
+如果您厌倦了因固定密钥轮换导致的“僵尸设备”问题，这就是您一直在等待的革命。
 
-### 1. ♾️ 全球领先：无限动态密钥 (Infinite Dynamic Keys)
+### 1. ♾️ 旗舰功能：Infinity Tag (无限动态密钥)
 
 <p align="center">
   <video src="docs/images/web_studio_demo.mov" width="800" controls muted autoplay loop style="border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
@@ -19,11 +20,15 @@
   </video>
 </p>
 
-传统方案只能循环使用固定的 200 个密钥，容易被苹果系统识别为“僵尸设备”而减少位置上报。
+传统的 "Standard Tag" (Standard Mode/Static Mode) 只能循环使用固定的 200 个密钥。一旦耗尽或被识别，它们就会被苹果的反追踪网络标记，导致位置更新稀疏。
 
-* **黑科技：** 我们首创了 **Dynamic Seed** 技术，固件内部只需存储一个随机种子。
-* **效果：** 密钥永不重复，无限生成，抗追踪能力完美对标原生 AirTag 隐私标准。
-* **结果：** 定位点连点成线，轨迹丝滑，永不丢包。
+**Infinity Tag 的压倒性优势：**
+
+* **绝对隐私：** 采用 **Dynamic Seed** 技术实时生成密钥。
+* **无限寿命：** 密钥永不重复。永远。
+* **影院级追踪：** 丝滑流畅、无断点的轨迹记录，完美复刻原生 AirTag 体验。
+
+> **注意：** 为了保持兼容性，我们依然支持 **Standard Tag** 模式，但 Infinity Tag 才是未来。
 
 ### 2. 🖥️ 苹果级交互：Web Studio 2.0
 

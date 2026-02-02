@@ -267,7 +267,8 @@ while true; do
     echo -e "\033[1;33m========================================"
     echo "       本次参数预览"
     echo -e "========================================\033[0m"
-    echo "  - 模式: $([ "$MODE" == "1" ] && echo "Dynamic (Seed Patch)" || echo "Static (Key Patch)")"
+    echo "  - 芯片: $CHIP_ID"
+    echo "  - 模式: $([ "$MODE" == "1" ] && echo "Infinity Tag (Seed Patch)" || echo "Standard Tag (Key Patch)")"
     echo "  - 调试器: $([ "$DEBUGGER" == "1" ] && echo "J-Link" || ([ "$DEBUGGER" == "2" ] && echo "ST-Link" || echo "DAPLink"))"
     echo "  - 设备: $DEVICE_NAME"
     echo "  - 广播间隔: $CURRENT_INTERVAL ms"
@@ -278,7 +279,7 @@ while true; do
     SEED_FILE_DIR="$PROJECT_ROOT/seeds/$DEVICE_NAME"
     BUILD_DIR="heystack-nrf5x/nrf51822/armgcc/_build"
     
-    # --- Dynamic Mode: Generate Seed ---
+    # --- Infinity Tag: Generate Seed ---
     if [ "$MODE" == "1" ]; then
         mkdir -p "$SEED_FILE_DIR"
         SEED_HEX_FILE="$SEED_FILE_DIR/seed_${DEVICE_NAME}.hex"

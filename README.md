@@ -3,15 +3,16 @@
 > **[🇺🇸 English](./README.md)** | [🇨🇳 中文](./README_zh.md)
 
 <p align="center">
-  <br><b>Give every nRF5 chip the soul of an AirTag.</b><br>
+  <br><b>Home of the Infinity Tag.</b><br>
   The most powerful, elegant, and only "Zero-Configuration" firmware deployment toolkit for the Apple Find My network.
 </p>
 
-# 💎 Why is this the Industry Standard?
+# 💎 Introducing: Infinity Tag
 
-If you're tired of clunky command lines, messy key management, and flaky location tracks, **nRF5-AirTag-Toolkit** is the ultimate solution you've been waiting for.
+**nRF5-AirTag-Toolkit** brings you the next evolution of tracking technology: the **Infinity Tag**.
+If you're tired of "Zombie Devices" caused by fixed key rotation, this is the revolution you've been waiting for.
 
-### 1. ♾️ World-Leading: Infinite Dynamic Keys
+### 1. ♾️ The Flagship: Infinity Tag (Infinite Dynamic Keys)
 
 <p align="center">
   <video src="docs/images/web_studio_demo.mov" width="800" controls muted autoplay loop style="border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);">
@@ -19,11 +20,15 @@ If you're tired of clunky command lines, messy key management, and flaky locatio
   </video>
 </p>
 
-Conventional solutions recycle a fixed set of ~200 keys, which can be flagged as "zombie devices" by Apple, resulting in sparse location updates.
+Conventional "Standard Tags" (Static Mode) recycle a fixed set of ~200 keys. Once exhausted or recognized, they can be flagged by Apple's anti-tracking network, resulting in sparse updates.
 
-* **The Innovation:** We pioneered **Dynamic Seed** technology—the firmware only stores a single random seed.
-* **The Effect:** Keys are generated infinitely and never repeat, matching the privacy standards of original AirTags.
-* **The Result:** Smooth, continuous tracking paths with zero data loss.
+**The Infinity Tag Advantage:**
+
+* **True Privacy:** Uses **Dynamic Seed** technology to generate keys on-the-fly.
+* **Infinite Lifespan:** Keys never repeat. Period.
+* **Cinema-Grade Tracking:** Smooth, gapless location history that rivals the original AirTag.
+
+> **Note:** We still support **Standard Tag** mode for legacy compatibility, but Infinity Tag is the future.
 
 ### 2. 🖥️ Apple-Grade Experience: Web Studio 2.0
 

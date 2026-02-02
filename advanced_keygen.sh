@@ -41,7 +41,7 @@ SEED_DIR="$PROJECT_ROOT/seeds/$PREFIX"
 mkdir -p "$CONFIG_DIR"
 
 if [ "$MODE" == "static" ]; then
-    echo "🔵 [Static Mode] Generating $COUNT keys for $PREFIX..."
+    echo "🔵 [Standard Tag] Generating $COUNT keys for $PREFIX..."
     TEMP_DIR="temp_keygen_static"
     mkdir -p "$TEMP_DIR"
     
@@ -59,7 +59,7 @@ if [ "$MODE" == "static" ]; then
     fi
 
 elif [ "$MODE" == "dynamic" ]; then
-    echo "🟣 [Dynamic Mode] Generating Seed for $PREFIX..."
+    echo "🟣 [Infinity Tag] Generating Seed for $PREFIX..."
     mkdir -p "$SEED_DIR"
     SEED_HEX_FILE="$SEED_DIR/seed_${PREFIX}.hex"
     SEED_BIN_FILE="$SEED_DIR/seed_${PREFIX}.bin"
