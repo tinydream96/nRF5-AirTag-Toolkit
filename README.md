@@ -65,6 +65,9 @@ All complex SDK configurations, patch merging, and hex conversions are handled b
 > [!TIP]
 > **Prerequisites:** Ensure your drivers are installed and your device is connected via a debugger.
 
+> [!WARNING]
+> **J-Link Compatibility:** Older J-Link clones (e.g., "ARM-OB STM32" from ~2012) may fail to unlock/recover chips with Readback Protection. If `nrfjprog --recover` times out or OpenOCD reports "cannot read IDR", use a genuine Segger J-Link or a newer, high-quality clone.
+
 ### Step 1: Fire up the Engine
 
 Run a single command to start the Web Studio:

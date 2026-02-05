@@ -1675,6 +1675,14 @@
 
                                 </select>
                             </div>
+                            <!-- J-Link Compatibility Warning -->
+                            <div x-show="config.debugger === '1'"
+                                style="font-size: 10px; color: var(--accent-orange); opacity: 0.85; line-height: 1.4; margin-bottom: 10px;">
+                                <span x-show="lang === 'zh'">⚠️ 老旧 J-Link 克隆版（如 ARM-OB STM32）可能无法解锁芯片。如遇超时，请用正版或新款
+                                    J-Link。</span>
+                                <span x-show="lang === 'en'">⚠️ Old J-Link clones (e.g. ARM-OB STM32) may fail to unlock
+                                    chips. Use genuine/newer J-Link if timeouts occur.</span>
+                            </div>
                         </div>
 
                         <!-- 2. CLOUD MODE HARDWARE (WebUSB or Script) -->

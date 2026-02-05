@@ -65,6 +65,9 @@
 > [!TIP]
 > **准备工作：** 确保你的驱动已安装，且设备通过调试器连接到电脑。
 
+> [!WARNING]
+> **J-Link 兼容性：** 老旧的 J-Link 克隆版（如 2012 年左右的 "ARM-OB STM32"）可能无法解锁带有 Readback Protection 的芯片。如果 `nrfjprog --recover` 超时或 OpenOCD 报错 "cannot read IDR"，请使用正版 Segger J-Link 或更新的高质量克隆版。
+
 ### 第一步：启动引擎
 
 在终端输入一行命令即可启动 Web 控制台：
